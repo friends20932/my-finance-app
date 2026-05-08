@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premium Finance Tracker | 自用記帳</title>
+    <!-- Security Lock Script -->
+    <script src="lock.js"></script>
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Fonts: Outfit -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js & Plugins -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <!-- SortableJS for Touch-friendly Drag & Drop -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+</head>
+<body>
+    <div class="background-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <!-- ===== First-time Setup Overlay ===== -->
+    <div id="setup-overlay">
+        <div class="setup-card">
+            <div class="setup-icon"><i class="fas fa-cloud"></i></div>
+            <h2>歡迎使用賽富管家</h2>
+            <p class="setup-desc">這是您第一次在此設備上開啟。<br>請輸入您的 <strong>Google Apps Script 同步連結</strong>，系統將自動拉取您的所有資料。</p>
+            <div class="setup-input-group">
+                <input type="url" id="setup-sync-url" placeholder="https://script.google.com/macros/s/..." autocomplete="off">
+                <p id="setup-status" class="setup-status"></p>
+            </div>
+            <div class="setup-actions">
+                <button id="setup-connect-btn" class="btn-primary" style="width:100%; font-size:1.1rem; padding: 16px;">
+                    <i class="fas fa-link"></i> 連線並同步資料
+                </button>
+                <button id="setup-skip-btn" class="btn-secondary" style="width:100%; margin-top: 0.8rem;">
+                    <i class="fas fa-arrow-right"></i> 跳過，直接進入（離線模式）
+                </button>
+            </div>
+        </div>
+    </div>
+    <!-- ===== End Setup Overlay ===== -->    <div class="app-container">
+        <header>
+            <div class="header-content">
+                <div class="ledger-selector">
+                    <select id="ledger-switch">
+                        <!-- Populated by JS -->
+                    </select>
+                    <button id="manage-ledgers-btn" class="icon-btn" title="管理帳本">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                    <a href="index.html" class="icon-btn" title="所有帳本總覽" style="text-decoration: none; display: flex; align-items: center; justify-content: center; margin-left: 0.5rem; background: rgba(255,255,255,0.2);">
+                        <i class="fas fa-globe"></i> 總覽
+                    </a>
+                    <button id="privacy-toggle" class="icon-btn" title="顯示/隱藏餘額" style="margin-left: 0.5rem; background: rgba(255,255,255,0.2);">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+                <h1 id="main-title">我的財富管理</h1>
+                <div class="header-right">
+                    <p id="current-date"></p>
+                    <button id="sync-settings-btn" class="icon-btn sync-status offline" title="雲端同步設定">
+                        <i class="fas fa-cloud-upload-alt"></i> <span id="sync-text">未連線</span>
+                    </button>
+                    <button id="toggle-view-btn" class="btn-secondary">
+                        <i class="fas fa-mobile-alt"></i> 手機模式
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Fixed Zone for Chart and Controls -->
+        <div id="fixed-top-zone">
+            <!-- Widget: Combined Trend Chart -->
+            <section id="widget-trend" class="draggable-widget analytics-section glass full-width">
+                <div class="widget-handle"><i class="fas fa-grip-lines"></i></div>
+                <div class="section-header">
+                    <h3>財務趨勢分析</h3>
+                    <div class="view-toggles">
+                        <button class="view-btn active" data-range="daily">日</button>
+                        <button class="view-btn" data-range="monthly">月</button>
+                        <button class="view-btn" data-range="yearly">年</button>
+                    </div>
+                </div>
+                <div class="chart-container-extra-large">
+                    <canvas id="combinedChart"></canvas>
+                </div>
+            </section>
+
+            <!-- Fixed Controls (Not Draggable) -->
+            <section id="fixed-controls" class="controls">
+                <button id="manage-categories-btn" class="btn-secondary">
+                    <i class="fas fa-tags"></i> 類別管理
+                </button>
+                <button id="annual-report-btn" class="btn-secondary">
+                    <i class="fas fa-chart-bar"></i> 年度報表
+                </button>
+                <button id="backup-btn" class="btn-secondary"><i class="fas fa-download"></i> 備份</button>
+                <button id="restore-btn" class="btn-secondary"><i class="fas fa-upload"></i> 恢復</button>
+                <input type="file" id="restore-input" class="hidden" accept=".json">
+                <button id="export-btn" class="btn-secondary"><i class="fas fa-file-export"></i> 匯出 CSV</button>
+                <button id="add-btn" class="btn-primary"><i class="fas fa-plus"></i> 新增紀錄</button>
+            </section>
+        </div>
+
+        <div id="widget-zone" class="widget-grid">
+            <div class="desktop-layout-wrapper">
+                <div id="sidebar-zone" class="widget-column sidebar">
+                    <!-- Widget: Balance Card -->
+                    <div id="widget-balance" class="draggable-widget balance-card glass">
+                        <div class="widget-handle"><i class="fas fa-grip-lines"></i></div>
+                        <span class="label">總餘額</span>
+                        <h2 id="total-balance" class="amount">$ 0.00</h2>
+                        <div class="stats-row">
+                            <div class="stat income">
+                                <i class="fas fa-arrow-up"></i>
+                                <div>
+                                    <span class="small-label">當月收入</span>
+                                    <p id="monthly-income" class="amount">$ 0.00</p>
+                                </div>
+                            </div>
+                            <div class="stat expense">
+                                <i class="fas fa-arrow-down"></i>
+                                <div>
+                                    <span class="small-label">當月支出</span>
+                                    <p id="monthly-expense" class="amount">$ 0.00</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="stats-row" style="margin-top: 1rem;">
+                            <div class="stat income" style="padding: 8px 16px; border-radius: 14px;">
+                                <div>
+                                    <span class="small-label">當日收入</span>
+                                    <p id="daily-income" class="amount" style="font-size: 0.95rem;">$ 0.00</p>
+                                </div>
+                            </div>
+                            <div class="stat expense" style="padding: 8px 16px; border-radius: 14px;">
+                                <div>
+                                    <span class="small-label">當日支出</span>
+                                    <p id="daily-expense" class="amount" style="font-size: 0.95rem;">$ 0.00</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Widget: Accounts Grid -->
+                    <section id="widget-accounts" class="draggable-widget accounts-section glass">
+                        <div class="widget-handle"><i class="fas fa-grip-lines"></i></div>
+                        <h3>資產概覽</h3>
+                        <div id="accounts-container" class="accounts-grid"></div>
+                        <button id="manage-accounts-btn" class="btn-secondary" style="width:100%; margin-top:1rem;">
+                            <i class="fas fa-wallet"></i> 帳戶管理
+                        </button>
+                    </section>
+
+                    <!-- Widget: Category Analysis (Pie) -->
+                    <section id="widget-pie" class="draggable-widget analytics-section glass">
+                        <div class="widget-handle"><i class="fas fa-grip-lines"></i></div>
+                        <div class="section-header" style="display:flex; justify-content:space-between; align-items:center; padding-right:15px; margin-bottom: 0;">
+                            <h3 style="margin:0;">支出類別分析</h3>
+                            <input type="month" id="widget-pie-month" style="padding: 4px 8px; border-radius: 6px; border: 1px solid var(--glass-border); background: var(--bg); color: var(--text-main); font-size: 0.85rem;">
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="expenseChart"></canvas>
+                        </div>
+                    </section>
+
+                    <!-- Widget: Budget Progress -->
+                    <section id="widget-budget" class="draggable-widget budget-section glass">
+                        <div class="widget-handle"><i class="fas fa-grip-lines"></i></div>
+                        <div class="section-header" style="display:flex; justify-content:space-between; align-items:center; padding-right:15px; margin-bottom: 1.5rem;">
+                            <h3 style="margin:0;">每月預算執行率</h3>
+                            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                <input type="month" id="widget-budget-month" style="padding: 4px 8px; border-radius: 6px; border: 1px solid var(--glass-border); background: var(--bg); color: var(--text-main); font-size: 0.85rem;">
+                                <button id="manage-budget-btn" class="icon-btn"><i class="fas fa-cog"></i></button>
+                            </div>
+                        </div>
+                        <div id="budget-container" class="budget-list">
+                            <div class="empty-state">
+                                <p>尚未設定預算</p>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <div id="main-zone" class="widget-column main">
+                    <!-- Widget: Transaction List -->
+                    <section id="widget-transactions" class="draggable-widget transactions-section glass">
+                        <div class="widget-handle"><i class="fas fa-grip-lines"></i></div>
+                        <h3>最近交易</h3>
+                        <div id="transaction-list" class="list-container"></div>
+                    </section>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="modal" class="modal">
+        <div class="modal-content glass">
+            <div class="modal-header">
+                <h3>新增收支紀錄</h3>
+                <button id="close-modal" class="icon-btn"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="transaction-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>類型</label>
+                        <div class="radio-group">
+                            <label><input type="radio" name="type" value="expense" checked> 支出</label>
+                            <label><input type="radio" name="type" value="income"> 收入</label>
+                            <label><input type="radio" name="type" value="transfer"> 轉帳</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="date">日期與時間</label>
+                        <input type="datetime-local" id="date" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="amount">金額</label>
+                        <input type="number" id="amount" step="1" required placeholder="0">
+                        <button type="button" id="calc-toggle-btn" class="calc-toggle-pill">
+                            <i class="fas fa-calculator"></i> 計算機
+                        </button>
+                        <!-- Calculator Panel -->
+                        <div id="calc-panel" class="calc-panel hidden">
+                            <div id="calc-display" class="calc-display">
+                                <span id="calc-expr" class="calc-expr"></span>
+                                <span id="calc-result" class="calc-result">0</span>
+                            </div>
+                            <div class="calc-grid">
+                                <button type="button" class="calc-btn calc-fn" data-action="clear">C</button>
+                                <button type="button" class="calc-btn calc-fn" data-action="del"><i class="fas fa-backspace"></i></button>
+                                <button type="button" class="calc-btn calc-fn" data-action="pct">%</button>
+                                <button type="button" class="calc-btn calc-op" data-val="/">÷</button>
+
+                                <button type="button" class="calc-btn" data-val="7">7</button>
+                                <button type="button" class="calc-btn" data-val="8">8</button>
+                                <button type="button" class="calc-btn" data-val="9">9</button>
+                                <button type="button" class="calc-btn calc-op" data-val="*">×</button>
+
+                                <button type="button" class="calc-btn" data-val="4">4</button>
+                                <button type="button" class="calc-btn" data-val="5">5</button>
+                                <button type="button" class="calc-btn" data-val="6">6</button>
+                                <button type="button" class="calc-btn calc-op" data-val="-">−</button>
+
+                                <button type="button" class="calc-btn" data-val="1">1</button>
+                                <button type="button" class="calc-btn" data-val="2">2</button>
+                                <button type="button" class="calc-btn" data-val="3">3</button>
+                                <button type="button" class="calc-btn calc-op" data-val="+">+</button>
+
+                                <button type="button" class="calc-btn" data-val="0" style="grid-column: span 2;">0</button>
+                                <button type="button" class="calc-btn" data-val=".">.</button>
+                                <button type="button" class="calc-btn calc-eq" data-action="eq">=</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="account">帳戶</label>
+                        <select id="account" required></select>
+                    </div>
+                    <div id="to-account-group" class="form-group hidden">
+                        <label for="to-account">轉入帳戶</label>
+                        <select id="to-account"></select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="category">主類別</label>
+                        <select id="category" required></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="subcategory">子類別</label>
+                        <select id="subcategory"></select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="description">描述</label>
+                    <input type="text" id="description" placeholder="輸入交易細節...">
+                </div>
+                <div id="installment-group" class="form-row hidden">
+                    <div class="form-group">
+                        <label for="installments">分期期數</label>
+                        <input type="number" id="installments" min="1" value="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="interest-rate">利率 (%)</label>
+                        <input type="number" id="interest-rate" step="0.01" value="0">
+                    </div>
+                </div>
+                <div class="custom-checkbox-container">
+                    <label class="custom-checkbox-label">
+                        <input type="checkbox" id="exclude-stats" class="hidden-checkbox">
+                        <span class="custom-checkbox"></span>
+                        不列入收支統計 <span style="font-size: 0.8em; opacity: 0.7;">(僅影響餘額)</span>
+                    </label>
+                </div>
+                <button type="submit" class="btn-submit">確認新增</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Account Manager Modal -->
+    <div id="account-modal" class="modal">
+        <div class="modal-content glass">
+            <div class="modal-header">
+                <h3>帳戶管理</h3>
+                <button id="close-account-modal" class="icon-btn"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="account-manager-content">
+                <div id="account-manager-list" class="account-manager-list"></div>
+                <hr>
+                <form id="add-account-form" class="add-form">
+                    <h4 id="account-form-title">新增帳戶</h4>
+                    <input type="hidden" id="edit-account-id">
+                    <div class="form-row">
+                        <input type="text" id="new-account-name" placeholder="帳戶名稱" required>
+                        <select id="new-account-type">
+                            <option value="現金">現金</option>
+                            <option value="銀行帳戶">銀行帳戶</option>
+                            <option value="信用卡">信用卡</option>
+                            <option value="投資">投資</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <input type="number" id="new-account-balance" placeholder="初始/現有餘額" step="0.01" required>
+                    </div>
+                    <div class="form-group checkbox-group">
+                        <label><input type="checkbox" id="new-account-networth" checked> 列入總資產計算</label>
+                    </div>
+                    <button type="submit" class="btn-submit" id="account-submit-btn">確認帳戶</button>
+                    <button type="button" id="cancel-account-edit" class="btn-secondary hidden">取消編輯</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Manager Modal -->
+    <div id="category-modal" class="modal">
+        <div class="modal-content glass">
+            <div class="modal-header">
+                <h3>類別管理</h3>
+                <button id="close-category-modal" class="icon-btn"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="category-tabs">
+                <button class="tab-btn active" data-tab="expense">支出</button>
+                <button class="tab-btn" data-tab="income">收入</button>
+                <button class="tab-btn" data-tab="transfer">轉帳</button>
+            </div>
+            <div id="category-manager-list" class="category-manager-list"></div>
+            <hr>
+            <form id="add-category-form" class="add-form">
+                <h4>新增主類別</h4>
+                <div class="form-row">
+                    <input type="text" id="new-category-name" placeholder="類別名稱" required>
+                    <button type="submit" class="btn-submit">新增</button>
+                </div>
+            </form>
+            <form id="add-subcategory-form" class="add-form hidden">
+                <h4>為 <span id="target-category-label"></span> 新增子類別</h4>
+                <div class="form-row">
+                    <input type="text" id="new-subcategory-name" placeholder="子類別名稱" required>
+                    <button type="submit" class="btn-submit">新增</button>
+                    <button type="button" onclick="document.getElementById('add-subcategory-form').classList.add('hidden')" class="btn-secondary">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Ledger Manager Modal -->
+    <div id="ledger-modal" class="modal">
+        <div class="modal-content glass">
+            <div class="modal-header">
+                <h3>帳本管理</h3>
+                <button id="close-ledger-modal" class="icon-btn"><i class="fas fa-times"></i></button>
+            </div>
+            <div id="ledger-manager-list" class="ledger-manager-list"></div>
+            <hr>
+            <form id="add-ledger-form" class="add-form">
+                <h4 id="ledger-form-title">建立新帳本</h4>
+                <input type="hidden" id="edit-ledger-id">
+                <input type="text" id="new-ledger-name" placeholder="帳本名稱 (如：公司帳)" required style="margin-bottom: 0.5rem; width: 100%;">
+                <input type="text" id="new-ledger-title" placeholder="副標題 (如：工作開支管理)" style="margin-bottom: 0.5rem; width: 100%;">
+                <div style="display: flex; gap: 0.5rem; width: 100%;">
+                    <button type="submit" id="ledger-submit-btn" class="btn-submit" style="margin-top: 0; flex: 1;">新增帳本</button>
+                    <button type="button" id="cancel-ledger-edit" class="btn-secondary hidden" style="margin-top: 0;">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Annual Report Modal -->
+    <div id="report-modal" class="modal">
+        <div class="modal-content glass report-modal-content">
+            <div class="modal-header">
+                <h3>年度財務報表</h3>
+                <div class="header-actions">
+                    <select id="report-year-select"></select>
+                    <button id="print-report-btn" class="icon-btn"><i class="fas fa-print"></i></button>
+                    <button id="close-report-modal" class="icon-btn"><i class="fas fa-times"></i></button>
+                </div>
+            </div>
+            <div id="annual-report-table" class="annual-report-table"></div>
+        </div>
+    </div>
+
+    <!-- Sync Settings Modal -->
+    <div id="sync-modal" class="modal">
+        <div class="modal-content glass">
+            <div class="modal-header">
+                <h3>雲端同步設定</h3>
+                <button id="close-sync-modal" class="icon-btn"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="sync-form">
+                <div class="form-group">
+                    <label for="sync-url">API URL (Google Apps Script)</label>
+                    <input type="text" id="sync-url" placeholder="https://script.google.com/macros/s/..." required>
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                    <button type="submit" class="btn-submit" style="flex: 1;">儲存設定</button>
+                    <button type="button" id="force-sync-btn" class="btn-secondary" style="margin-top: 1rem; width: auto;">強制手動同步</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Budget Management Modal -->
+    <div id="budget-modal" class="modal">
+        <div class="modal-content glass">
+            <div class="modal-header">
+                <h3>預算管理</h3>
+                <button id="close-budget-modal" class="icon-btn"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="budget-month-selector" style="margin-bottom: 1rem;">
+                <label for="budget-month" style="display: block; margin-bottom: 0.5rem; color: var(--text-main); font-weight: 600;">設定月份：</label>
+                <input type="month" id="budget-month" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--glass-border); background: var(--bg); color: var(--text-main); margin-bottom: 0.5rem;">
+                <div style="display: flex; justify-content: flex-end;">
+                    <button id="budget-set-default-btn" type="button" class="btn-secondary" style="font-size: 0.85rem; padding: 6px 12px;"><i class="fas fa-undo"></i> 設定為預設預算</button>
+                </div>
+            </div>
+            <hr style="border: 0; border-top: 1px solid var(--glass-border); margin: 1rem 0;">
+            <div id="budget-manager-list" class="budget-manager-list" style="max-height: 45vh; overflow-y: auto; padding-right: 10px;">
+                <!-- Populated by JS -->
+            </div>
+            <div class="modal-footer" style="margin-top: 1.5rem;">
+                <button id="save-budget-btn" class="btn-submit" style="width: 100%;">儲存預算設定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Account Details Modal -->
+    <div id="account-details-modal" class="modal">
+        <div class="modal-content glass" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3><span id="account-details-name"></span> 交易明細</h3>
+                <button id="close-account-details-modal" class="icon-btn"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="account-details-summary" style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.5); padding: 1rem; border-radius: 16px; margin-bottom: 1rem;">
+                <div><span style="font-size: 0.85rem; color: var(--text-muted);">目前餘額</span><h4 id="account-details-balance" class="amount" style="font-size: 1.5rem; margin:0; color: var(--primary-dark);">$ 0</h4></div>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <label style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">篩選月份</label>
+                    <input type="month" id="account-details-month" style="padding: 6px 10px; border-radius: 8px; border: 1px solid var(--glass-border); background: white; color: var(--text-main); font-size: 0.82rem;">
+                    <button type="button" id="account-details-clear-month" class="icon-btn" style="min-width:32px; height:32px; font-size:0.8rem;" title="顯示全部"><i class="fas fa-times"></i></button>
+                </div>
+            </div>
+            <div id="account-details-list" class="list-container" style="max-height: 50vh;"></div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
