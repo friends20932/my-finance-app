@@ -357,7 +357,7 @@ function renderTransactions() {
         item.innerHTML = `
             <div class="item-info">
                 <div class="item-icon"><i class="fas fa-receipt"></i></div>
-                <div class="item-details"><h4>${t.description}</h4><p>${t.date.replace('T', ' ')} • ${t.category} • ${t.account}</p></div>
+                <div class="item-details"><h4>${t.description}</h4><p>${t.category}${t.subcategory ? ' • ' + t.subcategory : ''} • ${t.account}</p><span class="item-date">${t.date.replace('T', ' ')}</span></div>
             </div>
             <div class="item-amount ${amountClass}"><strong class="amount">${sign} $${formatNumber(t.amount)}</strong>
             <button class="btn-delete" onclick="event.stopPropagation(); removeTransaction(${t.id})"><i class="fas fa-trash-alt"></i></button></div>
@@ -1550,7 +1550,7 @@ function renderAccountDetailsList(accountName, monthFilter) {
         item.innerHTML = `
             <div class="item-info">
                 <div class="item-icon"><i class="fas fa-receipt"></i></div>
-                <div class="item-details"><h4>${t.description || t.category}</h4><p>${t.date.replace('T', ' ')} • ${t.type === 'transfer' ? '轉帳' : t.category}</p></div>
+                <div class="item-details"><h4>${t.description || t.category}</h4><p>${t.type === 'transfer' ? '轉帳' : t.category}${t.subcategory ? ' • ' + t.subcategory : ''} • ${t.account}</p><span class="item-date">${t.date.replace('T', ' ')}</span></div>
             </div>
             <div class="item-amount ${amountClass}" style="gap: 0.5rem;">
                 <strong class="amount">${sign} $${formatNumber(displayAmount)}</strong>
