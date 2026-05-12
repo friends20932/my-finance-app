@@ -555,15 +555,18 @@ function renderCategoryManager() {
     const activeTab = document.querySelector('.tab-btn.active')?.dataset.tab || 'expense';
     const cats = categories[activeTab] || [];
     categoryManagerList.innerHTML = cats.map((cat, idx) => `
-        <div class="category-item-container">
+        <div class="category-item-container" data-idx="${idx}">
             <div class="category-header">
-                <strong>${cat.name}</strong>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-grip-vertical category-handle" style="cursor: grab; color: var(--text-muted); opacity: 0.5;"></i>
+                    <strong>${cat.name}</strong>
+                </div>
                 <div class="category-actions">
                     <button class="icon-btn" onclick="showAddSub(${idx})" title="增加子類別"><i class="fas fa-plus"></i></button>
                     <button class="icon-btn" onclick="removeCategory('${activeTab}', ${idx})" style="color:var(--primary)" title="刪除主類別"><i class="fas fa-trash"></i></button>
                 </div>
             </div>
-            <div style="padding-left: 0.5rem; margin-top: 1rem; display:flex; flex-wrap:wrap; gap:0.5rem;">
+            <div style="padding-left: 1.5rem; margin-top: 1rem; display:flex; flex-wrap:wrap; gap:0.5rem;">
                 ${cat.sub.map((s, sidx) => `
                     <span class="badge" style="background:var(--secondary); padding:6px 12px; border-radius:12px; font-size:0.85rem; cursor:pointer; color:var(--text-muted); border: 1px solid rgba(251,113,133,0.1);" 
                           onclick="removeSubcategory('${activeTab}', ${idx}, ${sidx})">
@@ -572,6 +575,29 @@ function renderCategoryManager() {
             </div>
         </div>
     `).join('');
+
+    if (typeof Sortable !== 'undefined') {
+        if (window.categorySortable) {
+            window.categorySortable.destroy();
+        }
+        window.categorySortable = new Sortable(categoryManagerList, {
+            handle: '.category-handle',
+            animation: 150,
+            ghostClass: 'sortable-ghost',
+            onEnd: function (evt) {
+                const oldIndex = evt.oldIndex;
+                const newIndex = evt.newIndex;
+                if (oldIndex === newIndex) return;
+                
+                const movedItem = categories[activeTab].splice(oldIndex, 1)[0];
+                categories[activeTab].splice(newIndex, 0, movedItem);
+                
+                saveLedgerData();
+                renderCategoryManager();
+                updateCategorySelect();
+            }
+        });
+    }
 }
 
 window.removeCategory = function(type, idx) { categories[type].splice(idx, 1); saveLedgerData(); renderCategoryManager(); updateCategorySelect(); };
