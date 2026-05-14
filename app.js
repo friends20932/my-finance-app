@@ -1689,3 +1689,267 @@ document.querySelectorAll('.tab-btn').forEach(btn => btn.addEventListener('click
 }));
 
 init();
+
+// ============================================================
+// 📌 BULLETIN BOARD NOTES WIDGET
+// ============================================================
+(function initNotesWidget() {
+    const editor = document.getElementById('notes-editor');
+    const charCount = document.getElementById('notes-char-count');
+    const saveStatus = document.getElementById('notes-save-status');
+    const toolbar = document.getElementById('notes-toolbar');
+    const tableModal = document.getElementById('notes-table-modal');
+    const tableGrid = document.getElementById('notes-table-grid');
+    const tableSizeLabel = document.getElementById('notes-table-size-label');
+    const tableRowsInput = document.getElementById('notes-table-rows');
+    const tableColsInput = document.getElementById('notes-table-cols');
+    const tableInsertBtn = document.getElementById('notes-table-insert-btn');
+    const closeTableModal = document.getElementById('close-notes-table-modal');
+    const insertTableBtn = document.getElementById('notes-insert-table-btn');
+    const insertHrBtn = document.getElementById('notes-insert-hr-btn');
+    const clearBtn = document.getElementById('notes-clear-btn');
+
+    if (!editor) return;
+
+    const STORAGE_KEY = `notes_${currentLedgerId}`;
+
+    // ---- Load saved content ----
+    function loadNotes() {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+            editor.innerHTML = saved;
+        }
+        updateCharCount();
+    }
+
+    // ---- Auto-save with debounce ----
+    let saveTimer = null;
+    function scheduleAutoSave() {
+        if (saveStatus) {
+            saveStatus.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> 儲存中...';
+            saveStatus.classList.add('saving');
+        }
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(() => {
+            localStorage.setItem(STORAGE_KEY, editor.innerHTML);
+            if (saveStatus) {
+                saveStatus.innerHTML = '<i class="fas fa-check-circle"></i> 已自動儲存';
+                saveStatus.classList.remove('saving');
+            }
+        }, 800);
+    }
+
+    // ---- Char count ----
+    function updateCharCount() {
+        const text = editor.innerText || '';
+        const count = text.replace(/\s/g, '').length;
+        if (charCount) charCount.textContent = `${count} 字`;
+    }
+
+    // ---- Editor events ----
+    editor.addEventListener('input', () => {
+        updateCharCount();
+        scheduleAutoSave();
+        updateToolbarState();
+    });
+
+    editor.addEventListener('keyup', updateToolbarState);
+    editor.addEventListener('mouseup', updateToolbarState);
+
+    // Prevent losing contenteditable on paste — paste as plain text
+    editor.addEventListener('paste', (e) => {
+        e.preventDefault();
+        const text = (e.clipboardData || window.clipboardData).getData('text/html')
+            || (e.clipboardData || window.clipboardData).getData('text/plain');
+        document.execCommand('insertHTML', false, text);
+    });
+
+    // ---- Toolbar: formatting commands ----
+    if (toolbar) {
+        toolbar.addEventListener('mousedown', (e) => {
+            const btn = e.target.closest('[data-cmd]');
+            if (btn) {
+                e.preventDefault();
+                document.execCommand(btn.dataset.cmd, false, null);
+                editor.focus();
+                updateToolbarState();
+                scheduleAutoSave();
+            }
+
+            // Color buttons
+            const colorBtn = e.target.closest('.notes-color-btn');
+            if (colorBtn) {
+                e.preventDefault();
+                const color = colorBtn.dataset.color;
+                if (color) {
+                    document.execCommand('foreColor', false, color);
+                } else {
+                    document.execCommand('removeFormat', false, null);
+                }
+                editor.focus();
+                scheduleAutoSave();
+            }
+        });
+    }
+
+    // ---- Active state for toolbar buttons ----
+    function updateToolbarState() {
+        const cmds = ['bold', 'italic', 'underline', 'strikeThrough', 'insertUnorderedList', 'insertOrderedList'];
+        cmds.forEach(cmd => {
+            const btn = toolbar?.querySelector(`[data-cmd="${cmd}"]`);
+            if (btn) btn.classList.toggle('active', document.queryCommandState(cmd));
+        });
+    }
+
+    // ---- Insert HR ----
+    if (insertHrBtn) {
+        insertHrBtn.addEventListener('click', () => {
+            editor.focus();
+            document.execCommand('insertHTML', false, '<hr>');
+            scheduleAutoSave();
+        });
+    }
+
+    // ---- Clear ----
+    if (clearBtn) {
+        clearBtn.addEventListener('click', () => {
+            if (confirm('確定要清除所有筆記內容嗎？')) {
+                editor.innerHTML = '';
+                scheduleAutoSave();
+                updateCharCount();
+            }
+        });
+    }
+
+    // ---- Insert Table Modal ----
+    let savedRange = null;
+
+    function saveSelection() {
+        const sel = window.getSelection();
+        if (sel && sel.rangeCount > 0) {
+            savedRange = sel.getRangeAt(0).cloneRange();
+        }
+    }
+
+    function restoreSelection() {
+        if (savedRange) {
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(savedRange);
+        }
+    }
+
+    if (insertTableBtn) {
+        insertTableBtn.addEventListener('click', () => {
+            saveSelection();
+            tableModal.classList.add('active');
+        });
+    }
+
+    if (closeTableModal) {
+        closeTableModal.addEventListener('click', () => tableModal.classList.remove('active'));
+    }
+
+    tableModal?.addEventListener('click', (e) => {
+        if (e.target === tableModal) tableModal.classList.remove('active');
+    });
+
+    // ---- Grid Picker (8×8) ----
+    if (tableGrid) {
+        const GRID_ROWS = 8, GRID_COLS = 8;
+        let hoveredRow = 0, hoveredCol = 0;
+
+        // Build grid cells
+        for (let r = 1; r <= GRID_ROWS; r++) {
+            for (let c = 1; c <= GRID_COLS; c++) {
+                const cell = document.createElement('div');
+                cell.className = 'notes-grid-cell';
+                cell.dataset.row = r;
+                cell.dataset.col = c;
+
+                cell.addEventListener('mouseenter', () => {
+                    hoveredRow = r; hoveredCol = c;
+                    // Highlight all cells in range
+                    tableGrid.querySelectorAll('.notes-grid-cell').forEach(el => {
+                        el.classList.toggle('highlighted',
+                            +el.dataset.row <= r && +el.dataset.col <= c);
+                    });
+                    if (tableSizeLabel) tableSizeLabel.textContent = `${r} 行 × ${c} 欄`;
+                    if (tableRowsInput) tableRowsInput.value = r;
+                    if (tableColsInput) tableColsInput.value = c;
+                });
+
+                cell.addEventListener('click', () => {
+                    insertTable(r, c);
+                    tableModal.classList.remove('active');
+                });
+
+                tableGrid.appendChild(cell);
+            }
+        }
+
+        tableGrid.addEventListener('mouseleave', () => {
+            tableGrid.querySelectorAll('.notes-grid-cell').forEach(el => el.classList.remove('highlighted'));
+            if (tableSizeLabel) tableSizeLabel.textContent = '選擇表格大小';
+        });
+    }
+
+    // ---- Manual input insert ----
+    if (tableInsertBtn) {
+        tableInsertBtn.addEventListener('click', () => {
+            const r = Math.max(1, Math.min(20, +tableRowsInput.value || 3));
+            const c = Math.max(1, Math.min(10, +tableColsInput.value || 3));
+            insertTable(r, c);
+            tableModal.classList.remove('active');
+        });
+    }
+
+    // ---- Build & Insert Table HTML ----
+    function insertTable(rows, cols) {
+        restoreSelection();
+        editor.focus();
+
+        let html = '<table><thead><tr>';
+        for (let c = 0; c < cols; c++) {
+            html += `<th contenteditable="true">欄位 ${c + 1}</th>`;
+        }
+        html += '</tr></thead><tbody>';
+        for (let r = 0; r < rows; r++) {
+            html += '<tr>';
+            for (let c = 0; c < cols; c++) {
+                html += '<td contenteditable="true"></td>';
+            }
+            html += '</tr>';
+        }
+        html += '</tbody></table><p><br></p>';
+
+        document.execCommand('insertHTML', false, html);
+        scheduleAutoSave();
+    }
+
+    // ---- Tab key in table cells ----
+    editor.addEventListener('keydown', (e) => {
+        if (e.key === 'Tab') {
+            const sel = window.getSelection();
+            const cell = sel.anchorNode?.closest?.('td, th');
+            if (cell) {
+                e.preventDefault();
+                const allCells = Array.from(editor.querySelectorAll('td, th'));
+                const idx = allCells.indexOf(cell);
+                const next = allCells[idx + 1];
+                if (next) {
+                    next.focus();
+                    // Move cursor to end of next cell
+                    const range = document.createRange();
+                    range.selectNodeContents(next);
+                    range.collapse(false);
+                    sel.removeAllRanges();
+                    sel.addRange(range);
+                }
+            }
+        }
+    });
+
+    // ---- Init ----
+    loadNotes();
+})();
