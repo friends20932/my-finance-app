@@ -92,6 +92,7 @@ let transactions = [];
 let accounts = [];
 let categories = {};
 let budgets = {};
+let notes = '';           // Bulletin board notes HTML (synced via cloud)
 let myChart = null;
 let combinedChart = null;
 let expensePieChart = null;
@@ -286,10 +287,12 @@ async function loadLedgerData() {
             monthly: loadedBudgets.monthly || {}
         };
     }
+    // Load notes (HTML string)
+    notes = data.notes || '';
 }
 
 function saveLedgerData() {
-    const data = { transactions, accounts, categories, budgets };
+    const data = { transactions, accounts, categories, budgets, notes };
     localStorage.setItem(`ledger_data_${currentLedgerId}`, JSON.stringify(data));
     pushToCloud();
 }
@@ -932,6 +935,22 @@ async function init() {
     updateCategorySelect();
     initDraggable();
     initCharts();
+    refreshNotesEditor(); // Sync notes editor with cloud-loaded data
+}
+
+// Update the notes editor content when ledger data is reloaded
+function refreshNotesEditor() {
+    const editor = document.getElementById('notes-editor');
+    if (!editor) return;
+    // Only overwrite if the global notes differs from what's displayed
+    if (editor.innerHTML !== notes) {
+        editor.innerHTML = notes || '';
+        const charCount = document.getElementById('notes-char-count');
+        if (charCount) {
+            const count = (editor.innerText || '').replace(/\s/g, '').length;
+            charCount.textContent = `${count} 字`;
+        }
+    }
 }
 
 function updateMainTitle() { const l = ledgers.find(l => l.id === currentLedgerId); mainTitle.innerText = l ? (l.title || l.name) : '我的財富管理'; }
@@ -1750,16 +1769,25 @@ init();
     }
 
 
-    // ---- Load saved content ----
+    // ---- Load saved content (from ledger data, synced via cloud) ----
     function loadNotes() {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        if (saved) {
-            editor.innerHTML = saved;
+        // 'notes' is the global variable loaded by loadLedgerData()
+        // Also fall back to old standalone localStorage key for one-time migration
+        const legacyKey = `notes_${currentLedgerId}`;
+        const legacyContent = localStorage.getItem(legacyKey);
+        if (notes) {
+            editor.innerHTML = notes;
+        } else if (legacyContent) {
+            // Migrate: move old key into ledger data for cloud sync
+            editor.innerHTML = legacyContent;
+            notes = legacyContent;
+            saveLedgerData();
+            localStorage.removeItem(legacyKey);
         }
         updateCharCount();
     }
 
-    // ---- Auto-save with debounce ----
+    // ---- Auto-save with debounce (via saveLedgerData → cloud push) ----
     let saveTimer = null;
     function scheduleAutoSave() {
         if (saveStatus) {
@@ -1768,7 +1796,8 @@ init();
         }
         clearTimeout(saveTimer);
         saveTimer = setTimeout(() => {
-            localStorage.setItem(STORAGE_KEY, editor.innerHTML);
+            notes = editor.innerHTML; // update global variable
+            saveLedgerData();         // save + push to cloud
             if (saveStatus) {
                 saveStatus.innerHTML = '<i class="fas fa-check-circle"></i> 已自動儲存';
                 saveStatus.classList.remove('saving');
