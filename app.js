@@ -1709,9 +1709,46 @@ init();
     const insertHrBtn = document.getElementById('notes-insert-hr-btn');
     const clearBtn = document.getElementById('notes-clear-btn');
 
+    const collapseBtn = document.getElementById('notes-collapse-btn');
+    const widget = document.getElementById('widget-notes');
+    const titleRow = widget?.querySelector('.notes-title-row');
+
     if (!editor) return;
 
     const STORAGE_KEY = `notes_${currentLedgerId}`;
+    const COLLAPSE_KEY = `notes_collapsed_${currentLedgerId}`;
+
+    // ---- Collapse / Expand ----
+    function setCollapsed(collapsed) {
+        widget.classList.toggle('notes-collapsed', collapsed);
+        localStorage.setItem(COLLAPSE_KEY, collapsed ? '1' : '0');
+    }
+
+    function toggleCollapse() {
+        const isNowCollapsed = !widget.classList.contains('notes-collapsed');
+        setCollapsed(isNowCollapsed);
+    }
+
+    // Restore collapsed state
+    if (localStorage.getItem(COLLAPSE_KEY) === '1') {
+        widget.classList.add('notes-collapsed');
+    }
+
+    // Click on title row or button to toggle
+    if (titleRow) {
+        titleRow.addEventListener('click', (e) => {
+            // Avoid triggering when clicking inside a child button that does something else
+            toggleCollapse();
+        });
+    }
+    // Prevent button double-trigger (it's inside titleRow)
+    if (collapseBtn) {
+        collapseBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleCollapse();
+        });
+    }
+
 
     // ---- Load saved content ----
     function loadNotes() {

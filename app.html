@@ -203,7 +203,12 @@
                             <div class="notes-title-row">
                                 <div class="notes-icon"><i class="fas fa-thumbtack"></i></div>
                                 <h3>📌 備忘佈告欄</h3>
+                                <button id="notes-collapse-btn" class="notes-collapse-btn" title="收縮/展開">
+                                    <i class="fas fa-chevron-up"></i>
+                                </button>
                             </div>
+                        </div>
+                        <div id="notes-collapsible-body" class="notes-collapsible-body">
                             <div class="notes-toolbar" id="notes-toolbar">
                                 <button class="notes-tool-btn" data-cmd="bold" title="粗體 (Ctrl+B)"><i class="fas fa-bold"></i></button>
                                 <button class="notes-tool-btn" data-cmd="italic" title="斜體 (Ctrl+I)"><i class="fas fa-italic"></i></button>
@@ -224,11 +229,11 @@
                                 <div class="notes-tool-divider"></div>
                                 <button class="notes-tool-btn" id="notes-clear-btn" title="清除全部內容" style="color:#e11d48;"><i class="fas fa-trash-alt"></i></button>
                             </div>
-                        </div>
-                        <div id="notes-editor" class="notes-editor" contenteditable="true" spellcheck="false" data-placeholder="✍️ 在這裡記下任何筆記、待辦事項、或財務計畫...&#10;&#10;小提示：可插入表格來記錄收支細項！"></div>
-                        <div class="notes-footer">
-                            <span id="notes-char-count" class="notes-char-count">0 字</span>
-                            <span class="notes-save-status" id="notes-save-status"><i class="fas fa-check-circle"></i> 已自動儲存</span>
+                            <div id="notes-editor" class="notes-editor" contenteditable="true" spellcheck="false" data-placeholder="✍️ 在這裡記下任何筆記、待辦事項、或財務計畫...&#10;&#10;小提示：可插入表格來記錄收支細項！"></div>
+                            <div class="notes-footer">
+                                <span id="notes-char-count" class="notes-char-count">0 字</span>
+                                <span class="notes-save-status" id="notes-save-status"><i class="fas fa-check-circle"></i> 已自動儲存</span>
+                            </div>
                         </div>
                     </section>
                 </div>
