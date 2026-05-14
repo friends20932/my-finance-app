@@ -288,7 +288,7 @@ h1 { font-size: 1.8rem; font-weight: 700; color: var(--primary-dark); letter-spa
 /* Modals */
 .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(76, 5, 25, 0.4); backdrop-filter: blur(8px); z-index: 100; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: 0.3s; }
 .modal.active { opacity: 1; visibility: visible; }
-.modal-content { width: 90%; max-width: 550px; padding: 2.5rem; transform: scale(0.9); transition: 0.3s; position: relative; max-height: 90vh; overflow-y: auto; }
+.modal-content { width: 90%; max-width: 650px; padding: 2.5rem; transform: scale(0.9); transition: 0.3s; position: relative; max-height: 90vh; overflow-y: auto; }
 .modal-content::-webkit-scrollbar { width: 6px; }
 .modal-content::-webkit-scrollbar-thumb { background: rgba(251, 113, 133, 0.2); border-radius: 10px; }
 .modal.active .modal-content { transform: scale(1); }
@@ -299,7 +299,7 @@ h1 { font-size: 1.8rem; font-weight: 700; color: var(--primary-dark); letter-spa
 .form-row { display: flex; gap: 1.2rem; margin-bottom: 1.2rem; }
 .form-group { flex: 1; display: flex; flex-direction: column; gap: 8px; }
 .form-group label { font-weight: 700; color: var(--text-muted); font-size: 0.9rem; margin-left: 4px; }
-input, select { padding: 14px 18px; border-radius: 16px; border: 1px solid rgba(251,113,133,0.2); background: rgba(255,255,255,0.8); outline: none; transition: 0.3s; font-size: 1rem; color: var(--text-main); font-weight: 500; }
+input, select { width: 100%; box-sizing: border-box; padding: 14px 18px; border-radius: 16px; border: 1px solid rgba(251,113,133,0.2); background: rgba(255,255,255,0.8); outline: none; transition: 0.3s; font-size: 1rem; color: var(--text-main); font-weight: 500; }
 input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(251,113,133,0.1); background: white; }
 
 /* Radio Buttons */

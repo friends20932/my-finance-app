@@ -1388,6 +1388,54 @@ function generateAnnualReport(year) {
 }
 
 closeReportModal.addEventListener('click', () => reportModal.classList.remove('active'));
+
+if (exportBtn) {
+    exportBtn.addEventListener('click', () => {
+        if (transactions.length === 0) {
+            alert('目前沒有交易紀錄可以匯出！');
+            return;
+        }
+
+        // Prepare CSV header
+        const headers = ['日期', '類型', '主類別', '子類別', '帳戶', '項目說明', '金額'];
+        const csvRows = [];
+        csvRows.push(headers.join(','));
+
+        // Prepare CSV rows
+        const typeMap = { 'income': '收入', 'expense': '支出', 'transfer': '轉帳' };
+        
+        // Sort transactions by date (newest first)
+        const sortedTransactions = [...transactions].sort((a, b) => new Date(b.date) - new Date(a.date) || b.id - a.id);
+
+        sortedTransactions.forEach(t => {
+            const row = [
+                t.date.split('T')[0], 
+                typeMap[t.type] || t.type,
+                `"${t.category || ''}"`,
+                `"${t.subcategory || ''}"`,
+                `"${(t.type === 'transfer' && t.toAccount) ? (t.account + ' -> ' + t.toAccount) : (t.account || '')}"`,
+                `"${(t.description || '').replace(/"/g, '""')}"`, 
+                t.amount
+            ];
+            csvRows.push(row.join(','));
+        });
+
+        // Add BOM for Excel UTF-8 compatibility
+        const csvContent = '\uFEFF' + csvRows.join('\n');
+        
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+        a.download = `transactions_${dateStr}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    });
+}
+
 backupBtn.addEventListener('click', () => {
     const data = {}; for(let i=0; i<localStorage.length; i++) data[localStorage.key(i)] = localStorage.getItem(localStorage.key(i));
     const blob = new Blob([JSON.stringify(data)], {type:'application/json'});
