@@ -1080,6 +1080,15 @@ body.mobile-mode .item-amount { width: 100%; justify-content: space-between; fle
     margin-top: 0;
 }
 
+/* Shrink the card padding when collapsed */
+.notes-section {
+    transition: padding-bottom 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#widget-notes.notes-collapsed {
+    padding-bottom: 1.4rem;
+}
+
 .notes-title-row h3 {
     font-size: 1.3rem;
     font-weight: 700;
