@@ -1603,6 +1603,79 @@ window.removeTransaction = (id) => { transactions = transactions.filter(t => t.i
         expr = ''; justEvaled = false;
         updateDisplay();
     });
+
+    // ---- Keyboard input support ----
+    document.addEventListener('keydown', (e) => {
+        // Only handle keyboard input when calc panel is visible
+        if (calcPanel.classList.contains('hidden')) return;
+        // Don't intercept if user is typing in another input/textarea
+        const tag = document.activeElement?.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+        const ops = ['+', '-', '*', '/'];
+        let handled = true;
+
+        if (e.key >= '0' && e.key <= '9') {
+            if (justEvaled && !ops.includes(e.key)) { expr = ''; }
+            justEvaled = false;
+            expr += e.key;
+        } else if (e.key === '.') {
+            const parts = expr.split(/[+\-*/]/);
+            if (!parts[parts.length - 1].includes('.')) {
+                if (justEvaled) { expr = '0'; justEvaled = false; }
+                expr += '.';
+            }
+        } else if (e.key === '+' || e.key === '-' || e.key === '*' || e.key === '/') {
+            justEvaled = false;
+            if (expr && ops.includes(expr.slice(-1))) {
+                expr = expr.slice(0, -1);
+            }
+            expr += e.key;
+        } else if (e.key === 'Enter' || e.key === '=') {
+            // Trigger equals
+            try {
+                const safeExpr = expr.replace(/[^0-9+\-*/().%]/g, '');
+                const res = Function('"use strict"; return (' + safeExpr + ')')();
+                if (isFinite(res)) {
+                    const rounded = parseFloat(res.toFixed(6));
+                    expr = rounded.toString();
+                    justEvaled = true;
+                    updateDisplay();
+                    applyToAmount();
+                    setTimeout(() => {
+                        calcPanel.classList.add('hidden');
+                        calcToggleBtn.classList.remove('active');
+                    }, 600);
+                    return;
+                }
+            } catch(err) {}
+        } else if (e.key === 'Backspace') {
+            if (justEvaled) { expr = ''; justEvaled = false; }
+            else expr = expr.slice(0, -1);
+        } else if (e.key === 'Escape') {
+            calcPanel.classList.add('hidden');
+            calcToggleBtn.classList.remove('active');
+            return;
+        } else if (e.key === '%') {
+            try {
+                const safeExpr = expr.replace(/[^0-9+\-*/().%]/g, '');
+                const val2 = Function('"use strict"; return (' + safeExpr + ')')();
+                if (isFinite(val2)) { expr = (val2 / 100).toString(); }
+            } catch(err) {}
+            justEvaled = true;
+        } else {
+            handled = false;
+        }
+
+        if (handled) {
+            e.preventDefault();
+            updateDisplay();
+            const cur = parseFloat(calcResult.textContent);
+            if (!isNaN(cur) && calcResult.textContent !== '錯誤' && calcResult.textContent !== '...') {
+                amountInput.value = Math.round(cur * 100) / 100;
+            }
+        }
+    });
 })();
 
 // ===== Account Details: current account name for filter =====
