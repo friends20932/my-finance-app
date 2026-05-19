@@ -346,8 +346,40 @@ function updateSummary() {
 
 function renderTransactions() {
     listEl.innerHTML = '';
-    if (transactions.length === 0) { listEl.innerHTML = '<div class="empty-state">尚無交易紀錄</div>'; return; }
-    transactions.sort((a, b) => new Date(b.date) - new Date(a.date) || b.id - a.id).forEach(t => {
+    const searchInput = document.getElementById('transaction-search');
+    const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
+
+    let filtered = transactions.slice();
+
+    if (query) {
+        filtered = filtered.filter(t => {
+            return (
+                (t.description || '').toLowerCase().includes(query) ||
+                (t.category || '').toLowerCase().includes(query) ||
+                (t.subcategory || '').toLowerCase().includes(query) ||
+                (t.account || '').toLowerCase().includes(query) ||
+                (t.date || '').toLowerCase().includes(query) ||
+                String(t.amount).includes(query)
+            );
+        });
+    }
+
+    if (filtered.length === 0) {
+        listEl.innerHTML = query
+            ? `<div class="empty-state"><i class="fas fa-search" style="font-size:1.5rem; opacity:0.4; margin-bottom:0.5rem;"></i><br>找不到符合「${query}」的交易</div>`
+            : '<div class="empty-state">尚無交易紀錄</div>';
+        return;
+    }
+
+    // Show result count when searching
+    if (query) {
+        const countBanner = document.createElement('div');
+        countBanner.className = 'search-result-count';
+        countBanner.innerHTML = `<i class="fas fa-filter"></i> 找到 <strong>${filtered.length}</strong> 筆符合結果`;
+        listEl.appendChild(countBanner);
+    }
+
+    filtered.sort((a, b) => new Date(b.date) - new Date(a.date) || b.id - a.id).forEach(t => {
         const item = document.createElement('div'); 
         item.className = `transaction-item ${t.excludeFromStats ? 'excluded' : ''}`;
         item.style.cursor = 'pointer';
@@ -357,10 +389,18 @@ function renderTransactions() {
         
         let sign = '', amountClass = t.type;
         if (t.type === 'income') sign = '+'; else if (t.type === 'expense') sign = '-'; else sign = '⇌';
+
+        // Highlight matching text
+        const highlight = (text) => {
+            if (!query || !text) return text || '';
+            const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            return text.replace(new RegExp(`(${escaped})`, 'gi'), '<mark class="search-highlight">$1</mark>');
+        };
+
         item.innerHTML = `
             <div class="item-info">
                 <div class="item-icon"><i class="fas fa-receipt"></i></div>
-                <div class="item-details"><h4>${t.description}</h4><p>${t.category}${t.subcategory ? ' • ' + t.subcategory : ''} • ${t.account}</p><span class="item-date">${t.date.replace('T', ' ')}</span></div>
+                <div class="item-details"><h4>${highlight(t.description)}</h4><p>${highlight(t.category)}${t.subcategory ? ' • ' + highlight(t.subcategory) : ''} • ${highlight(t.account)}</p><span class="item-date">${t.date.replace('T', ' ')}</span></div>
             </div>
             <div class="item-amount ${amountClass}"><strong class="amount">${sign} $${formatNumber(t.amount)}</strong>
             <button class="btn-delete" onclick="event.stopPropagation(); removeTransaction(${t.id})"><i class="fas fa-trash-alt"></i></button></div>
@@ -368,6 +408,7 @@ function renderTransactions() {
         listEl.appendChild(item);
     });
 }
+
 
 function renderAccounts() {
     accountsContainer.innerHTML = '';
@@ -1063,6 +1104,31 @@ document.getElementById('close-category-details-modal')?.addEventListener('click
 document.getElementById('category-details-modal')?.addEventListener('click', (e) => {
     if (e.target === e.currentTarget) e.currentTarget.classList.remove('active');
 });
+
+// Transaction search listeners
+const transactionSearchInput = document.getElementById('transaction-search');
+const transactionSearchClear = document.getElementById('transaction-search-clear');
+
+if (transactionSearchInput) {
+    transactionSearchInput.addEventListener('input', (e) => {
+        renderTransactions();
+        if (e.target.value.trim() !== '') {
+            transactionSearchClear.classList.remove('hidden');
+        } else {
+            transactionSearchClear.classList.add('hidden');
+        }
+    });
+}
+
+if (transactionSearchClear) {
+    transactionSearchClear.addEventListener('click', () => {
+        if (transactionSearchInput) {
+            transactionSearchInput.value = '';
+            renderTransactions();
+            transactionSearchClear.classList.add('hidden');
+        }
+    });
+}
 
 // Range toggle buttons
 document.querySelectorAll('.view-btn').forEach(btn => btn.addEventListener('click', () => {

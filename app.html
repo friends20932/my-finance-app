@@ -192,7 +192,14 @@
                     <!-- Widget: Transaction List -->
                     <section id="widget-transactions" class="draggable-widget transactions-section glass">
                         <div class="widget-handle"><i class="fas fa-grip-lines"></i></div>
-                        <h3>最近交易</h3>
+                        <div class="transactions-header">
+                            <h3>最近交易</h3>
+                            <div class="transaction-search-wrap">
+                                <i class="fas fa-search transaction-search-icon"></i>
+                                <input type="text" id="transaction-search" class="transaction-search-input" placeholder="搜尋描述、類別、帳戶...">
+                                <button id="transaction-search-clear" class="transaction-search-clear hidden" title="清除搜尋"><i class="fas fa-times"></i></button>
+                            </div>
+                        </div>
                         <div id="transaction-list" class="list-container"></div>
                     </section>
 
