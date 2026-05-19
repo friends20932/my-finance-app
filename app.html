@@ -540,12 +540,18 @@
     <div id="category-details-modal" class="modal">
         <div class="modal-content glass" style="max-width: 600px;">
             <div class="modal-header">
-                <h3><span id="category-details-name"></span> 消費明細</h3>
-                <button id="close-category-details-modal" class="icon-btn"><i class="fas fa-times"></i></button>
+                <div style="display:flex; align-items:center; gap:0.6rem; flex:1; min-width:0;">
+                    <button id="category-details-back-btn" class="icon-btn hidden" title="返回" style="flex-shrink:0;"><i class="fas fa-chevron-left"></i></button>
+                    <h3 style="margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                        <span id="category-details-name"></span>
+                        <span id="category-details-sub-name" style="color:var(--text-muted); font-size:0.85em;"></span>
+                    </h3>
+                </div>
+                <button id="close-category-details-modal" class="icon-btn" style="flex-shrink:0;"><i class="fas fa-times"></i></button>
             </div>
             <div class="account-details-summary" style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.5); padding: 1rem; border-radius: 16px; margin-bottom: 1rem;">
                 <div>
-                    <span style="font-size: 0.85rem; color: var(--text-muted);">總支出</span>
+                    <span id="category-details-total-label" style="font-size: 0.85rem; color: var(--text-muted);">總支出</span>
                     <h4 id="category-details-total" class="amount" style="font-size: 1.5rem; margin:0; color: var(--primary-dark);">$ 0</h4>
                 </div>
                 <div style="display: flex; align-items: center; gap: 0.5rem;">

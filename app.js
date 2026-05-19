@@ -930,39 +930,63 @@ function showCategoryDetails(categoryName, monthStr) {
     const modal = document.getElementById('category-details-modal');
     if (!modal) return;
 
-    // Filter transactions for this category and month
-    const filtered = transactions
-        .filter(t => t.type === 'expense' && !t.excludeFromStats && t.category === categoryName && t.date.startsWith(monthStr))
-        .sort((a, b) => new Date(b.date) - new Date(a.date) || b.id - a.id);
-
+    // All expense transactions for this category & month
+    const filtered = transactions.filter(
+        t => t.type === 'expense' && !t.excludeFromStats && t.category === categoryName && t.date.startsWith(monthStr)
+    );
     const total = filtered.reduce((s, t) => s + t.amount, 0);
-
-    // Populate header info
-    document.getElementById('category-details-name').textContent = categoryName;
-    document.getElementById('category-details-total').textContent = `$ ${formatNumber(total)}`;
     const [year, mon] = monthStr.split('-');
+
+    // --- Build subcategory summary ---
+    // Group: key = subcategory name or '' (no subcategory)
+    const subMap = {};
+    filtered.forEach(t => {
+        const key = t.subcategory || '';
+        if (!subMap[key]) subMap[key] = { total: 0, count: 0 };
+        subMap[key].total += t.amount;
+        subMap[key].count++;
+    });
+
+    // Sort: named subcategories first (by total desc), then '' last
+    const subEntries = Object.entries(subMap).sort((a, b) => {
+        if (a[0] === '' && b[0] !== '') return 1;
+        if (a[0] !== '' && b[0] === '') return -1;
+        return b[1].total - a[1].total;
+    });
+
+    // --- Update modal header (Level 1) ---
+    document.getElementById('category-details-name').textContent = categoryName;
+    document.getElementById('category-details-sub-name').textContent = ' — 消費明細';
+    document.getElementById('category-details-total-label').textContent = '總支出';
+    document.getElementById('category-details-total').textContent = `$ ${formatNumber(total)}`;
     document.getElementById('category-details-month-label').textContent = `${year} 年 ${parseInt(mon)} 月`;
     document.getElementById('category-details-count').textContent = `${filtered.length} 筆`;
+    document.getElementById('category-details-back-btn').classList.add('hidden');
 
-    // Render transaction list
+    // --- Render subcategory rows ---
     const listEl = document.getElementById('category-details-list');
     if (filtered.length === 0) {
         listEl.innerHTML = '<div class="empty-state">此類別本月無消費紀錄</div>';
+    } else if (subEntries.length === 1 && subEntries[0][0] === '') {
+        // No subcategories at all — show transactions directly
+        _renderTransactionList(listEl, filtered, categoryName, monthStr);
     } else {
-        listEl.innerHTML = filtered.map(t => {
-            const subLabel = t.subcategory ? ` <span style="font-size:0.78rem; opacity:0.7;">• ${t.subcategory}</span>` : '';
+        // Show subcategory breakdown
+        listEl.innerHTML = subEntries.map(([subName, info]) => {
+            const displayName = subName || '其他';
+            const pct = total > 0 ? ((info.total / total) * 100).toFixed(1) : 0;
             return `
-                <div class="transaction-item" style="cursor:pointer;" onclick="editTransaction(${t.id}); document.getElementById('category-details-modal').classList.remove('active');">
-                    <div class="item-info">
-                        <div class="item-icon"><i class="fas fa-receipt"></i></div>
-                        <div class="item-details">
-                            <h4>${t.description || '(無描述)'}</h4>
-                            <p>${t.account}${subLabel}</p>
-                            <span class="item-date">${t.date.replace('T', ' ')}</span>
+                <div class="cat-sub-row" onclick="showSubcategoryDetails('${categoryName}', '${subName}', '${monthStr}')">
+                    <div class="cat-sub-row-left">
+                        <div class="cat-sub-row-name">${displayName}</div>
+                        <div class="cat-sub-row-bar-wrap">
+                            <div class="cat-sub-row-bar" style="width:${pct}%"></div>
                         </div>
                     </div>
-                    <div class="item-amount expense">
-                        <strong class="amount">- $${formatNumber(t.amount)}</strong>
+                    <div class="cat-sub-row-right">
+                        <span class="cat-sub-row-amount">- $ ${formatNumber(info.total)}</span>
+                        <span class="cat-sub-row-count">${info.count} 筆</span>
+                        <i class="fas fa-chevron-right cat-sub-row-arrow"></i>
                     </div>
                 </div>
             `;
@@ -970,6 +994,66 @@ function showCategoryDetails(categoryName, monthStr) {
     }
 
     modal.classList.add('active');
+}
+
+window.showSubcategoryDetails = function(categoryName, subName, monthStr) {
+    const filtered = transactions
+        .filter(t => {
+            if (t.type !== 'expense' || t.excludeFromStats) return false;
+            if (t.category !== categoryName) return false;
+            if (!t.date.startsWith(monthStr)) return false;
+            const tSub = t.subcategory || '';
+            return tSub === subName;
+        })
+        .sort((a, b) => new Date(b.date) - new Date(a.date) || b.id - a.id);
+
+    const total = filtered.reduce((s, t) => s + t.amount, 0);
+    const displaySubName = subName || '其他';
+    const [year, mon] = monthStr.split('-');
+
+    // Update header to Level 2
+    document.getElementById('category-details-name').textContent = categoryName;
+    document.getElementById('category-details-sub-name').textContent = ` › ${displaySubName}`;
+    document.getElementById('category-details-total-label').textContent = '小計';
+    document.getElementById('category-details-total').textContent = `$ ${formatNumber(total)}`;
+    document.getElementById('category-details-month-label').textContent = `${year} 年 ${parseInt(mon)} 月`;
+    document.getElementById('category-details-count').textContent = `${filtered.length} 筆`;
+
+    // Show back button
+    const backBtn = document.getElementById('category-details-back-btn');
+    backBtn.classList.remove('hidden');
+    backBtn.onclick = () => showCategoryDetails(categoryName, monthStr);
+
+    const listEl = document.getElementById('category-details-list');
+    _renderTransactionList(listEl, filtered, categoryName, monthStr);
+};
+
+function _renderTransactionList(listEl, filtered, categoryName, monthStr) {
+    if (filtered.length === 0) {
+        listEl.innerHTML = '<div class="empty-state">無相關消費紀錄</div>';
+        return;
+    }
+    listEl.innerHTML = filtered.map(t => {
+        const subLabel = t.subcategory
+            ? `<span style="font-size:0.78rem; opacity:0.7;"> • ${t.subcategory}</span>`
+            : '';
+        return `
+            <div class="transaction-item" style="cursor:pointer;"
+                 onclick="editTransaction(${t.id}); document.getElementById('category-details-modal').classList.remove('active');">
+                <div class="item-info">
+                    <div class="item-icon"><i class="fas fa-receipt"></i></div>
+                    <div class="item-details">
+                        <h4>${t.description || '(無描述)'}</h4>
+                        <p>${t.account}${subLabel}</p>
+                        <span class="item-date">${t.date.replace('T', ' ')}</span>
+                    </div>
+                </div>
+                <div class="item-amount expense">
+                    <strong class="amount">- $${formatNumber(t.amount)}</strong>
+                </div>
+            </div>
+        `;
+    }).join('');
 }
 
 document.getElementById('widget-pie-month')?.addEventListener('change', renderPieChart);

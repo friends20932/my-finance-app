@@ -1397,3 +1397,85 @@ body.mobile-mode .item-amount { width: 100%; justify-content: space-between; fle
 #amount[type=number] {
     -moz-appearance: textfield;
 }
+
+/* ---- Category Subcategory Drill-down Rows ---- */
+.cat-sub-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.2rem;
+    background: rgba(255, 255, 255, 0.55);
+    border-radius: 16px;
+    border: 1px solid var(--glass-border);
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    gap: 1rem;
+}
+.cat-sub-row:hover {
+    background: white;
+    transform: scale(1.01);
+    box-shadow: 0 4px 16px rgba(251, 113, 133, 0.12);
+}
+.cat-sub-row:active {
+    transform: scale(0.99);
+}
+
+.cat-sub-row-left {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.cat-sub-row-name {
+    font-size: 0.98rem;
+    font-weight: 700;
+    color: var(--text-main);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.cat-sub-row-bar-wrap {
+    height: 5px;
+    background: rgba(251, 113, 133, 0.12);
+    border-radius: 4px;
+    overflow: hidden;
+}
+.cat-sub-row-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary), #fda4af);
+    border-radius: 4px;
+    transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.cat-sub-row-right {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-shrink: 0;
+}
+.cat-sub-row-amount {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--primary-dark);
+    font-family: 'Outfit', monospace;
+}
+.cat-sub-row-count {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: white;
+    background: var(--primary);
+    border-radius: 20px;
+    padding: 2px 8px;
+}
+.cat-sub-row-arrow {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    opacity: 0.5;
+    transition: transform 0.2s, opacity 0.2s;
+}
+.cat-sub-row:hover .cat-sub-row-arrow {
+    transform: translateX(3px);
+    opacity: 1;
+    color: var(--primary-dark);
+}
