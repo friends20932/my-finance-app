@@ -1387,3 +1387,13 @@ body.mobile-mode .item-amount { width: 100%; justify-content: space-between; fle
     min-height: 1.2em;
     margin-bottom: 0.4rem;
 }
+
+/* ---- Hide spin buttons on amount number input ---- */
+#amount::-webkit-outer-spin-button,
+#amount::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+#amount[type=number] {
+    -moz-appearance: textfield;
+}
