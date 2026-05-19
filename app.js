@@ -874,8 +874,21 @@ function renderPieChart() {
             responsive: true,
             maintainAspectRatio: false,
             cutout: '65%',
+            onClick: (evt, elements) => {
+                if (!pieLabels.length || !elements.length) return;
+                const idx = elements[0].index;
+                const categoryName = pieLabels[idx];
+                if (categoryName) showCategoryDetails(categoryName, selectedMonth);
+            },
             plugins: {
-                legend: { position: 'right', labels: { font: { family: 'Outfit', size: 12 } } },
+                legend: {
+                    position: 'right',
+                    labels: { font: { family: 'Outfit', size: 12 } },
+                    onClick: (evt, legendItem) => {
+                        const categoryName = legendItem.text;
+                        if (categoryName && categoryName !== '無資料') showCategoryDetails(categoryName, selectedMonth);
+                    }
+                },
                 tooltip: { 
                     callbacks: {
                         label: function(context) {
@@ -884,7 +897,7 @@ function renderPieChart() {
                             if (label) label += ': ';
                             const val = context.raw;
                             const percent = totalPieAmount > 0 ? ((val / totalPieAmount) * 100).toFixed(1) : 0;
-                            label += `$ ${formatNumber(val)} (${percent}%)`;
+                            label += `$ ${formatNumber(val)} (${percent}%) — 點擊查看明細`;
                             return label;
                         }
                     }
@@ -909,9 +922,63 @@ function renderPieChart() {
             }
         }
     });
+    // Make the canvas cursor pointer to hint it's clickable
+    pieCtx.canvas.style.cursor = 'pointer';
+}
+
+function showCategoryDetails(categoryName, monthStr) {
+    const modal = document.getElementById('category-details-modal');
+    if (!modal) return;
+
+    // Filter transactions for this category and month
+    const filtered = transactions
+        .filter(t => t.type === 'expense' && !t.excludeFromStats && t.category === categoryName && t.date.startsWith(monthStr))
+        .sort((a, b) => new Date(b.date) - new Date(a.date) || b.id - a.id);
+
+    const total = filtered.reduce((s, t) => s + t.amount, 0);
+
+    // Populate header info
+    document.getElementById('category-details-name').textContent = categoryName;
+    document.getElementById('category-details-total').textContent = `$ ${formatNumber(total)}`;
+    const [year, mon] = monthStr.split('-');
+    document.getElementById('category-details-month-label').textContent = `${year} 年 ${parseInt(mon)} 月`;
+    document.getElementById('category-details-count').textContent = `${filtered.length} 筆`;
+
+    // Render transaction list
+    const listEl = document.getElementById('category-details-list');
+    if (filtered.length === 0) {
+        listEl.innerHTML = '<div class="empty-state">此類別本月無消費紀錄</div>';
+    } else {
+        listEl.innerHTML = filtered.map(t => {
+            const subLabel = t.subcategory ? ` <span style="font-size:0.78rem; opacity:0.7;">• ${t.subcategory}</span>` : '';
+            return `
+                <div class="transaction-item" style="cursor:pointer;" onclick="editTransaction(${t.id}); document.getElementById('category-details-modal').classList.remove('active');">
+                    <div class="item-info">
+                        <div class="item-icon"><i class="fas fa-receipt"></i></div>
+                        <div class="item-details">
+                            <h4>${t.description || '(無描述)'}</h4>
+                            <p>${t.account}${subLabel}</p>
+                            <span class="item-date">${t.date.replace('T', ' ')}</span>
+                        </div>
+                    </div>
+                    <div class="item-amount expense">
+                        <strong class="amount">- $${formatNumber(t.amount)}</strong>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    modal.classList.add('active');
 }
 
 document.getElementById('widget-pie-month')?.addEventListener('change', renderPieChart);
+document.getElementById('close-category-details-modal')?.addEventListener('click', () => {
+    document.getElementById('category-details-modal').classList.remove('active');
+});
+document.getElementById('category-details-modal')?.addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) e.currentTarget.classList.remove('active');
+});
 
 // Range toggle buttons
 document.querySelectorAll('.view-btn').forEach(btn => btn.addEventListener('click', () => {
