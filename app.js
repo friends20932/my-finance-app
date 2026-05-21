@@ -2309,3 +2309,10 @@ init();
     // ---- Init ----
     loadNotes();
 })();
+
+// Disable mouse wheel scroll on number inputs globally to prevent accidental value changes
+document.addEventListener('wheel', function(e) {
+    if (document.activeElement && document.activeElement.type === 'number') {
+        document.activeElement.blur();
+    }
+});
