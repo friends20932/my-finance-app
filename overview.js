@@ -58,10 +58,13 @@ function calculateLedgerStats(data) {
         }
     });
     let netWorth = 0;
+    const today = new Date();
+    today.setHours(23, 59, 59, 999); // include all of today
     accounts.forEach(acc => {
         if (acc.includeInNetWorth !== false) {
             let bal = acc.initialBalance || 0;
             transactions.forEach(t => {
+                if (new Date(t.date) > today) return; // skip future-dated transactions
                 if (t.type === 'income' && t.account === acc.name) bal += t.amount;
                 if (t.type === 'expense' && t.account === acc.name) bal -= t.amount;
                 if (t.type === 'transfer') { 
