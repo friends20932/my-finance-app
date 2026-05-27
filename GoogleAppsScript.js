@@ -14,16 +14,28 @@
  * 10. 回到您的記帳 App 中貼上這串網址即可完成同步設定！
  */
 
-// 定義我們要存取資料的儲存格位置
-const DATA_CELL = "A1";
+// 定義我們要存取資料的起始欄位
+const DATA_COLUMN = "A";
 
 // 處理 GET 請求：當前端 App 需要「下載」資料時會呼叫此函式
 function doGet(e) {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-  const data = sheet.getRange(DATA_CELL).getValue();
+  
+  // 取得 A 欄所有的資料
+  const values = sheet.getRange(DATA_COLUMN + ":" + DATA_COLUMN).getValues();
+  
+  // 將所有儲存格的字串組合起來
+  let jsonData = "";
+  for (let i = 0; i < values.length; i++) {
+    if (values[i][0]) {
+      jsonData += values[i][0];
+    } else {
+      break; // 遇到空白儲存格就停止
+    }
+  }
   
   // 如果是空的，回傳空的 JSON 物件
-  const responseData = data ? data : "{}";
+  const responseData = jsonData ? jsonData : "{}";
   
   return ContentService.createTextOutput(responseData)
     .setMimeType(ContentService.MimeType.JSON);
@@ -34,10 +46,25 @@ function doPost(e) {
   try {
     // 取得前端傳過來的 JSON 字串
     const jsonData = e.postData.contents;
-    
-    // 將 JSON 字串寫入指定的儲存格中
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-    sheet.getRange(DATA_CELL).setValue(jsonData);
+    
+    // 清除舊資料
+    sheet.getRange(DATA_COLUMN + ":" + DATA_COLUMN).clearContent();
+    
+    // Google 試算表單一儲存格最多只能存 50,000 個字元
+    // 當資料量變大時（例如記帳好幾個月後），就會超過限制導致無法同步。
+    // 因此我們將字串每 40,000 字元切成一塊，分開存在 A1, A2, A3... 儲存格中
+    const chunkSize = 40000;
+    const chunks = [];
+    
+    for (let i = 0; i < jsonData.length; i += chunkSize) {
+      chunks.push([jsonData.substring(i, i + chunkSize)]);
+    }
+    
+    // 將切塊後的資料寫入儲存格
+    if (chunks.length > 0) {
+      sheet.getRange(1, 1, chunks.length, 1).setValues(chunks);
+    }
     
     // 同時在 B 欄位記錄最後更新時間，方便您除錯
     sheet.getRange("B1").setValue("最後同步時間：");
