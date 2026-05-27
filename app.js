@@ -1215,6 +1215,52 @@ toggleViewBtn?.addEventListener('click', () => {
 });
 syncSettingsBtn.addEventListener('click', () => { syncUrlInput.value = syncUrl; syncModal.classList.add('active'); });
 syncForm.addEventListener('submit', (e) => { e.preventDefault(); syncUrl = syncUrlInput.value.trim(); localStorage.setItem('syncUrl', syncUrl); syncModal.classList.remove('active'); init(); });
+
+if (forceSyncBtn) {
+    forceSyncBtn.addEventListener('click', async () => {
+        const originalText = forceSyncBtn.innerText;
+        forceSyncBtn.innerText = '同步中...';
+        forceSyncBtn.disabled = true;
+        const updated = await fetchFromCloud();
+        if (updated) {
+            // Reload local state
+            await loadLedgerData();
+            applyLayout();
+            populateLedgerSwitch();
+            updateMainTitle();
+            updateSummary();
+            renderTransactions();
+            renderAccounts();
+            renderBudgetWidget();
+            populateAccountSelects();
+            updateCategorySelect();
+            initCharts();
+            refreshNotesEditor();
+        }
+        forceSyncBtn.innerText = originalText;
+        forceSyncBtn.disabled = false;
+        syncModal.classList.remove('active');
+    });
+}
+
+// Auto-sync when user returns to the tab
+document.addEventListener('visibilitychange', async () => {
+    if (document.visibilityState === 'visible' && syncUrl && !isSyncing) {
+        const updated = await fetchFromCloud();
+        if (updated) {
+            // Reload local state to reflect changes from phone/other devices
+            await loadLedgerData();
+            updateSummary();
+            renderTransactions();
+            renderAccounts();
+            renderBudgetWidget();
+            populateAccountSelects();
+            updateCategorySelect();
+            initCharts();
+            refreshNotesEditor();
+        }
+    }
+});
 let currentBudgetMonth = 'default';
 
 function renderBudgetManagerList(monthKey) {
