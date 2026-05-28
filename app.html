@@ -401,9 +401,21 @@
                     <div class="form-row">
                         <input type="number" id="new-account-balance" placeholder="初始/現有餘額" step="0.01" required>
                     </div>
-                    <div class="form-group checkbox-group" style="display: flex; gap: 1rem; flex-wrap: wrap;">
-                        <label><input type="checkbox" id="new-account-networth" checked> 列入總資產計算</label>
-                        <label><input type="checkbox" id="new-account-archived"> 封存帳戶 (隱藏)</label>
+                    <div class="form-row" style="flex-wrap: wrap; margin-bottom: 1.5rem; gap: 1.5rem;">
+                        <div class="custom-checkbox-container" style="margin-top: 0;">
+                            <label class="custom-checkbox-label">
+                                <input type="checkbox" id="new-account-networth" class="hidden-checkbox" checked>
+                                <span class="custom-checkbox"></span>
+                                列入總資產計算
+                            </label>
+                        </div>
+                        <div class="custom-checkbox-container" style="margin-top: 0;">
+                            <label class="custom-checkbox-label">
+                                <input type="checkbox" id="new-account-archived" class="hidden-checkbox">
+                                <span class="custom-checkbox"></span>
+                                封存帳戶 (隱藏)
+                            </label>
+                        </div>
                     </div>
                     <button type="submit" class="btn-submit" id="account-submit-btn">確認帳戶</button>
                     <button type="button" id="cancel-account-edit" class="btn-secondary hidden">取消編輯</button>
