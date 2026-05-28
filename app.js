@@ -336,7 +336,7 @@ function updateSummary() {
             if (t.type === 'expense') dailyExpense += t.amount;
         }
     });
-    accounts.forEach(acc => { if (acc.includeInNetWorth !== false) netWorth += calculateAccountBalance(acc.name); });
+    accounts.forEach(acc => { if (acc.includeInNetWorth !== false && !acc.isArchived) netWorth += calculateAccountBalance(acc.name); });
     balanceEl.innerText = `$ ${formatNumber(netWorth)}`;
     if (monthlyIncomeEl) monthlyIncomeEl.innerText = `$ ${formatNumber(monthlyIncome)}`;
     if (monthlyExpenseEl) monthlyExpenseEl.innerText = `$ ${formatNumber(monthlyExpense)}`;
@@ -426,7 +426,7 @@ function renderAccounts() {
         typeGroups.forEach(g => classified[g.label] = []);
         const assignedIds = new Set();
 
-        const partitionAccounts = accounts.filter(a => isIncluded ? a.includeInNetWorth !== false : a.includeInNetWorth === false);
+        const partitionAccounts = accounts.filter(a => (isIncluded ? a.includeInNetWorth !== false : a.includeInNetWorth === false) && !a.isArchived);
 
         if (partitionAccounts.length === 0) return null;
 
@@ -566,7 +566,7 @@ document.getElementById('widget-budget-month').addEventListener('change', render
 function renderAccountManager() {
     accountManagerList.innerHTML = accounts.map(acc => `
         <div class="transaction-item" style="margin-bottom: 0.5rem; justify-content: space-between; display: flex; align-items: center; width: 100%;">
-            <div><strong>${acc.name}</strong> (${acc.type})</div>
+            <div><strong>${acc.name}</strong> (${acc.type})${acc.isArchived ? ' <span style="font-size:0.75rem; color:white; background:var(--text-muted); padding:2px 6px; border-radius:6px; margin-left:6px;">已封存</span>' : ''}</div>
             <div style="display: flex; gap: 0.5rem;">
                 <button class="icon-btn" onclick="editAccount(${acc.id})"><i class="fas fa-edit"></i></button>
                 <button class="icon-btn" onclick="removeAccount(${acc.id})" style="color:var(--primary)"><i class="fas fa-trash"></i></button>
@@ -583,6 +583,8 @@ window.editAccount = function(id) {
     document.getElementById('new-account-type').value = acc.type;
     document.getElementById('new-account-balance').value = acc.initialBalance;
     document.getElementById('new-account-networth').checked = acc.includeInNetWorth !== false;
+    const archivedEl = document.getElementById('new-account-archived');
+    if (archivedEl) archivedEl.checked = acc.isArchived === true;
     document.getElementById('account-form-title').innerText = '編輯帳戶';
     document.getElementById('account-submit-btn').innerText = '儲存變更';
     document.getElementById('cancel-account-edit').classList.remove('hidden');
@@ -695,7 +697,8 @@ function updateSubcategorySelect() {
 }
 
 function populateAccountSelects() {
-    const options = accounts.map(a => `<option value="${a.name}">${a.name}</option>`).join('');
+    const activeAccounts = accounts.filter(a => !a.isArchived);
+    const options = activeAccounts.map(a => `<option value="${a.name}">${a.name}</option>`).join('');
     accountSelect.innerHTML = options;
     toAccountSelect.innerHTML = options;
 }
@@ -1361,6 +1364,18 @@ window.editTransaction = function(id) {
     if (tDate && tDate.length === 10) tDate += "T00:00"; // Backward compatibility for old date-only strings
     document.getElementById('date').value = tDate;
     document.getElementById('amount').value = t.amount;
+    
+    const ensureOption = (select, val) => {
+        if (val && !Array.from(select.options).some(o => o.value === val)) {
+            const opt = document.createElement('option');
+            opt.value = val;
+            opt.text = val + ' (已封存)';
+            select.appendChild(opt);
+        }
+    };
+    ensureOption(accountSelect, t.account);
+    if (t.type === 'transfer') ensureOption(toAccountSelect, t.toAccount);
+    
     accountSelect.value = t.account;
     if (t.type === 'transfer') {
         toAccountGroup.classList.remove('hidden');
@@ -1434,15 +1449,18 @@ addAccountForm.addEventListener('submit', (e) => {
     const type = document.getElementById('new-account-type').value;
     const balance = +document.getElementById('new-account-balance').value;
     const include = document.getElementById('new-account-networth').checked;
+    const archivedEl = document.getElementById('new-account-archived');
+    const isArchived = archivedEl ? archivedEl.checked : false;
     
     if (id) {
         const idx = accounts.findIndex(a => a.id == id);
-        accounts[idx] = { ...accounts[idx], name, type, initialBalance: balance, includeInNetWorth: include };
+        accounts[idx] = { ...accounts[idx], name, type, initialBalance: balance, includeInNetWorth: include, isArchived };
     } else {
-        accounts.push({ id: Date.now(), name, type, initialBalance: balance, includeInNetWorth: include });
+        accounts.push({ id: Date.now(), name, type, initialBalance: balance, includeInNetWorth: include, isArchived });
     }
-    saveLedgerData(); renderAccounts(); renderAccountManager(); addAccountForm.reset();
+    saveLedgerData(); updateSummary(); renderAccounts(); renderAccountManager(); populateAccountSelects(); addAccountForm.reset();
     document.getElementById('edit-account-id').value = '';
+    if (archivedEl) archivedEl.checked = false;
     document.getElementById('account-form-title').innerText = '新增帳戶';
     document.getElementById('account-submit-btn').innerText = '確認帳戶';
     document.getElementById('cancel-account-edit').classList.add('hidden');
