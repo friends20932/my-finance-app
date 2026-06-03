@@ -698,7 +698,39 @@ function updateSubcategorySelect() {
 
 function populateAccountSelects() {
     const activeAccounts = accounts.filter(a => !a.isArchived);
-    const options = activeAccounts.map(a => `<option value="${a.name}">${a.name}</option>`).join('');
+
+    const typeGroups = [
+        { label: '現金', types: ['現金'] },
+        { label: '銀行帳戶', types: ['銀行帳戶', '銀行', '儲蓄'] },
+        { label: '信用卡', types: ['信用卡'] },
+        { label: '投資帳戶', types: ['投資帳戶', '投資', '基金', '股票'] },
+        { label: '其他', types: ['__other__'] }
+    ];
+
+    const getSortedPart = (isIncluded) => {
+        const classified = {};
+        typeGroups.forEach(g => classified[g.label] = []);
+        const assignedIds = new Set();
+        const partition = activeAccounts.filter(a => isIncluded ? a.includeInNetWorth !== false : a.includeInNetWorth === false);
+
+        typeGroups.filter(g => g.label !== '其他').forEach(group => {
+            partition.forEach(acc => {
+                if (!assignedIds.has(acc.id) && group.types.some(t => acc.type === t || acc.type.includes(t))) {
+                    classified[group.label].push(acc);
+                    assignedIds.add(acc.id);
+                }
+            });
+        });
+        partition.forEach(acc => { if (!assignedIds.has(acc.id)) classified['其他'].push(acc); });
+
+        let result = [];
+        typeGroups.forEach(g => { result = result.concat(classified[g.label]); });
+        return result;
+    };
+
+    const sortedAccounts = [...getSortedPart(true), ...getSortedPart(false)];
+    const options = sortedAccounts.map(a => `<option value="${a.name}">${a.name}</option>`).join('');
+    
     accountSelect.innerHTML = options;
     toAccountSelect.innerHTML = options;
 }
