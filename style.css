@@ -646,19 +646,21 @@ input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 4px 
     font-size: 0.85rem;
     position: sticky;
     left: 0;
-    background: white;
+    background: #ffffff;
     z-index: 2;
-    border-right: 2px solid rgba(251,113,133,0.1);
+    border-right: 2px solid rgba(251,113,133,0.15);
+    box-shadow: 2px 0 6px rgba(0,0,0,0.04);
 }
 .budget-report td.item-name.cat-label {
     font-weight: 800;
     color: var(--primary-dark);
-    background: rgba(251,113,133,0.05);
+    background: #fff0f2;
 }
 .budget-report td.item-name.sub-label {
     padding-left: 24px;
     color: var(--text-muted);
     font-weight: 500;
+    background: #fafafa;
 }
 
 /* Cell values */
@@ -709,9 +711,15 @@ input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 4px 
     padding: 9px 8px;
     font-family: 'Outfit', monospace;
 }
+.budget-report tr.grand-total-row td.item-name {
+    background: #fde8ec;
+}
 .budget-report tr.grand-total-row.income-grand td {
     background: rgba(16,185,129,0.08);
     border-top: 2px solid #10b981;
+}
+.budget-report tr.grand-total-row.income-grand td.item-name {
+    background: #e8faf5;
 }
 
 /* Balance row */
@@ -721,6 +729,9 @@ input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 4px 
     padding: 9px 8px;
     border-top: 1px solid rgba(251,113,133,0.15);
     border-bottom: 1px solid rgba(251,113,133,0.15);
+}
+.budget-report tr.balance-row td.item-name {
+    background: #f5eef0;
 }
 
 /* Utility Classes & Missing Layout Styles */
