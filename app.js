@@ -1689,9 +1689,9 @@ function generateAnnualReport(year) {
 
     html += `<tr class="balance-row">
         <td class="item-name">結餘</td>
-        ${months.map(m => { const bal = grandIncM[m] - grandExpM[m]; return `<td class="bgt-val"></td><td class="act-val">${fmtAmt(Math.abs(bal))}</td><td class="dif-val">${fmtDiff(bal)}</td>`; }).join('')}
+        ${months.map(m => { const bal = grandIncM[m] - grandExpM[m]; const balClass = bal > 0 ? 'surplus-val' : bal < 0 ? 'deficit-val' : 'zero-val'; return `<td class="bgt-val"></td><td class="act-val"><span class="${balClass}">${bal === 0 ? '0' : formatNumber(Math.abs(bal))}</span></td><td class="dif-val">${fmtDiff(bal)}</td>`; }).join('')}
         <td class="bgt-val year-col"></td>
-        <td class="act-val year-col">${fmtAmt(Math.abs(months.reduce((s,m) => s + grandIncM[m] - grandExpM[m], 0)))}</td>
+        <td class="act-val year-col">${(() => { const yBal = months.reduce((s,m) => s + grandIncM[m] - grandExpM[m], 0); const cls = yBal > 0 ? 'surplus-val' : yBal < 0 ? 'deficit-val' : 'zero-val'; return `<span class="${cls}">${yBal === 0 ? '0' : formatNumber(Math.abs(yBal))}</span>`; })()}</td>
         <td class="dif-val year-col">${fmtDiff(months.reduce((s,m) => s + grandIncM[m] - grandExpM[m], 0))}</td>
     </tr>`;
 

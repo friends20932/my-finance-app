@@ -681,6 +681,9 @@ input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 4px 
 .under-budget { color: #10b981; font-weight: 700; }
 .zero-val     { color: #d1d5db; }
 .income-val   { color: #10b981 !important; }
+/* 結餘列：盈餘 / 透支 */
+.surplus-val  { color: #10b981; font-weight: 800; }
+.deficit-val  { color: #e11d48; font-weight: 800; }
 
 /* Category total row */
 .budget-report tr.cat-total-row { background: rgba(251,113,133,0.04); }
