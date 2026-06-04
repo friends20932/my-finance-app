@@ -1559,11 +1559,15 @@ document.getElementById('cancel-ledger-edit')?.addEventListener('click', () => {
 
 // Annual Report Logic
 annualReportBtn.addEventListener('click', () => {
-    const years = [...new Set(transactions.map(t => new Date(t.date).getFullYear()))].sort((a, b) => b - a);
+    const years = [...new Set(transactions.filter(t => t.date).map(t => parseInt(t.date.substring(0, 4))))].sort((a, b) => b - a);
     if (years.length === 0) years.push(new Date().getFullYear());
     reportYearSelect.innerHTML = years.map(y => `<option value="${y}">${y} 年</option>`).join('');
     generateAnnualReport(reportYearSelect.value);
     reportModal.classList.add('active');
+});
+
+reportYearSelect.addEventListener('change', () => {
+    generateAnnualReport(reportYearSelect.value);
 });
 
 function generateAnnualReport(year) {
@@ -1681,7 +1685,7 @@ function generateAnnualReport(year) {
     </tr>`;
 
     html += `<tr class="balance-row">
-        <td class="item-name">Balance</td>
+        <td class="item-name">結餘</td>
         ${months.map(m => { const bal = grandIncM[m] - grandExpM[m]; return `<td class="bgt-val"></td><td class="act-val">${fmtAmt(Math.abs(bal))}</td><td class="dif-val">${fmtDiff(bal)}</td>`; }).join('')}
         <td class="bgt-val year-col"></td>
         <td class="act-val year-col">${fmtAmt(Math.abs(months.reduce((s,m) => s + grandIncM[m] - grandExpM[m], 0)))}</td>
