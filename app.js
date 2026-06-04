@@ -1559,9 +1559,12 @@ document.getElementById('cancel-ledger-edit')?.addEventListener('click', () => {
 
 // Annual Report Logic
 annualReportBtn.addEventListener('click', () => {
+    const currentYear = new Date().getFullYear();
     const years = [...new Set(transactions.filter(t => t.date).map(t => parseInt(t.date.substring(0, 4))))].sort((a, b) => b - a);
-    if (years.length === 0) years.push(new Date().getFullYear());
+    if (years.length === 0) years.push(currentYear);
     reportYearSelect.innerHTML = years.map(y => `<option value="${y}">${y} 年</option>`).join('');
+    // 預設選取當年度，若清單中沒有當年則保持第一個（最新）年份
+    reportYearSelect.value = years.includes(currentYear) ? currentYear : years[0];
     generateAnnualReport(reportYearSelect.value);
     reportModal.classList.add('active');
 });
