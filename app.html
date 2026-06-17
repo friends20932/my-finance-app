@@ -194,6 +194,24 @@
                         <div class="widget-handle"><i class="fas fa-grip-lines"></i></div>
                         <div class="transactions-header">
                             <h3>最近交易</h3>
+                            <div class="txn-month-picker">
+                                <button id="txn-month-prev" class="txn-month-btn" title="上個月"><i class="fas fa-chevron-left"></i></button>
+                                <button id="txn-month-label" class="txn-month-label" title="點擊選擇月份">
+                                    <i class="fas fa-calendar-alt"></i>
+                                    <span id="txn-month-label-text">全部</span>
+                                </button>
+                                <button id="txn-month-next" class="txn-month-btn" title="下個月"><i class="fas fa-chevron-right"></i></button>
+                                <!-- Month dropdown popup -->
+                                <div id="txn-month-dropdown" class="txn-month-dropdown hidden">
+                                    <div class="txn-month-dropdown-header">
+                                        <button id="txn-dropdown-year-prev" class="txn-month-btn small"><i class="fas fa-chevron-left"></i></button>
+                                        <span id="txn-dropdown-year-label" class="txn-dropdown-year"></span>
+                                        <button id="txn-dropdown-year-next" class="txn-month-btn small"><i class="fas fa-chevron-right"></i></button>
+                                    </div>
+                                    <div class="txn-month-grid" id="txn-month-grid"></div>
+                                    <button id="txn-month-all" class="txn-month-all-btn">顯示全部月份</button>
+                                </div>
+                            </div>
                             <div class="transaction-search-wrap">
                                 <i class="fas fa-search transaction-search-icon"></i>
                                 <input type="text" id="transaction-search" class="transaction-search-input" placeholder="搜尋描述、類別、帳戶...">

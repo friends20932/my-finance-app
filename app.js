@@ -97,6 +97,10 @@ let myChart = null;
 let combinedChart = null;
 let expensePieChart = null;
 let currentRange = 'daily';
+// Month filter for 最近交易 list: null = show all; { year, month } = filter that month
+let txnMonthFilter = null;
+// Year shown in the month-picker dropdown
+let txnDropdownYear = new Date().getFullYear();
 
 // --- DOM Elements ---
 const mainTitle = document.getElementById('main-title');
@@ -351,6 +355,15 @@ function renderTransactions() {
 
     let filtered = transactions.slice();
 
+    // --- Month filter ---
+    if (txnMonthFilter) {
+        filtered = filtered.filter(t => {
+            if (!t.date) return false;
+            const d = new Date(t.date);
+            return d.getFullYear() === txnMonthFilter.year && d.getMonth() + 1 === txnMonthFilter.month;
+        });
+    }
+
     if (query) {
         filtered = filtered.filter(t => {
             return (
@@ -364,11 +377,32 @@ function renderTransactions() {
         });
     }
 
+    // Update the month picker label
+    updateTxnMonthPickerLabel();
+
     if (filtered.length === 0) {
-        listEl.innerHTML = query
-            ? `<div class="empty-state"><i class="fas fa-search" style="font-size:1.5rem; opacity:0.4; margin-bottom:0.5rem;"></i><br>找不到符合「${query}」的交易</div>`
-            : '<div class="empty-state">尚無交易紀錄</div>';
+        let emptyMsg;
+        if (txnMonthFilter) {
+            const mn = `${txnMonthFilter.year} 年 ${String(txnMonthFilter.month).padStart(2,'0')} 月`;
+            emptyMsg = query
+                ? `<div class="empty-state"><i class="fas fa-search" style="font-size:1.5rem; opacity:0.4; margin-bottom:0.5rem;"></i><br>「${mn}」找不到符合「${query}」的交易</div>`
+                : `<div class="empty-state"><i class="fas fa-calendar-times" style="font-size:1.5rem; opacity:0.4; margin-bottom:0.5rem;"></i><br>「${mn}」尚無交易紀錄</div>`;
+        } else {
+            emptyMsg = query
+                ? `<div class="empty-state"><i class="fas fa-search" style="font-size:1.5rem; opacity:0.4; margin-bottom:0.5rem;"></i><br>找不到符合「${query}」的交易</div>`
+                : '<div class="empty-state">尚無交易紀錄</div>';
+        }
+        listEl.innerHTML = emptyMsg;
         return;
+    }
+
+    // Show filter badge when month is selected
+    if (txnMonthFilter) {
+        const badge = document.createElement('div');
+        badge.className = 'txn-month-filter-badge';
+        const mn = `${txnMonthFilter.year} 年 ${String(txnMonthFilter.month).padStart(2,'0')} 月`;
+        badge.innerHTML = `<i class="fas fa-calendar-check"></i> ${mn} ・ 共 <strong>${filtered.length}</strong> 筆`;
+        listEl.appendChild(badge);
     }
 
     // Show result count when searching
@@ -406,6 +440,157 @@ function renderTransactions() {
             <button class="btn-delete" onclick="event.stopPropagation(); removeTransaction(${t.id})"><i class="fas fa-trash-alt"></i></button></div>
         `;
         listEl.appendChild(item);
+    });
+}
+
+// ===== Month Picker for 最近交易 =====
+
+function updateTxnMonthPickerLabel() {
+    const labelEl = document.getElementById('txn-month-label-text');
+    if (!labelEl) return;
+    if (txnMonthFilter) {
+        labelEl.textContent = `${txnMonthFilter.year} 年 ${String(txnMonthFilter.month).padStart(2,'0')} 月`;
+    } else {
+        labelEl.textContent = '全部';
+    }
+}
+
+function renderTxnMonthDropdown() {
+    const yearLabel = document.getElementById('txn-dropdown-year-label');
+    const grid = document.getElementById('txn-month-grid');
+    if (!yearLabel || !grid) return;
+
+    yearLabel.textContent = `${txnDropdownYear} 年`;
+    grid.innerHTML = '';
+
+    // Collect all months that have data
+    const monthsWithData = new Set();
+    transactions.forEach(t => {
+        if (!t.date) return;
+        const d = new Date(t.date);
+        if (d.getFullYear() === txnDropdownYear) {
+            monthsWithData.add(d.getMonth() + 1);
+        }
+    });
+
+    const monthNames = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+    monthNames.forEach((name, idx) => {
+        const m = idx + 1;
+        const cell = document.createElement('button');
+        cell.className = 'txn-month-cell';
+        cell.textContent = name;
+        if (monthsWithData.has(m)) cell.classList.add('has-data');
+        if (txnMonthFilter && txnMonthFilter.year === txnDropdownYear && txnMonthFilter.month === m) {
+            cell.classList.add('active');
+        }
+        cell.onclick = (e) => {
+            e.stopPropagation();
+            txnMonthFilter = { year: txnDropdownYear, month: m };
+            closeTxnMonthDropdown();
+            renderTransactions();
+        };
+        grid.appendChild(cell);
+    });
+}
+
+function openTxnMonthDropdown() {
+    const dropdown = document.getElementById('txn-month-dropdown');
+    if (!dropdown) return;
+    // If filter is set, show that year; else show current year
+    if (txnMonthFilter) txnDropdownYear = txnMonthFilter.year;
+    renderTxnMonthDropdown();
+    dropdown.classList.remove('hidden');
+}
+
+function closeTxnMonthDropdown() {
+    const dropdown = document.getElementById('txn-month-dropdown');
+    if (dropdown) dropdown.classList.add('hidden');
+}
+
+function initTxnMonthPicker() {
+    const prevBtn   = document.getElementById('txn-month-prev');
+    const nextBtn   = document.getElementById('txn-month-next');
+    const labelBtn  = document.getElementById('txn-month-label');
+    const allBtn    = document.getElementById('txn-month-all');
+    const yearPrev  = document.getElementById('txn-dropdown-year-prev');
+    const yearNext  = document.getElementById('txn-dropdown-year-next');
+
+    if (!prevBtn || !nextBtn || !labelBtn) return;
+
+    // Prev month
+    prevBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeTxnMonthDropdown();
+        if (!txnMonthFilter) {
+            // Start from current month and go back one
+            const now = new Date();
+            let y = now.getFullYear(), m = now.getMonth() + 1 - 1;
+            if (m < 1) { m = 12; y--; }
+            txnMonthFilter = { year: y, month: m };
+        } else {
+            let { year, month } = txnMonthFilter;
+            month--;
+            if (month < 1) { month = 12; year--; }
+            txnMonthFilter = { year, month };
+        }
+        renderTransactions();
+    });
+
+    // Next month
+    nextBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeTxnMonthDropdown();
+        if (!txnMonthFilter) {
+            const now = new Date();
+            let y = now.getFullYear(), m = now.getMonth() + 1 + 1;
+            if (m > 12) { m = 1; y++; }
+            txnMonthFilter = { year: y, month: m };
+        } else {
+            let { year, month } = txnMonthFilter;
+            month++;
+            if (month > 12) { month = 1; year++; }
+            txnMonthFilter = { year, month };
+        }
+        renderTransactions();
+    });
+
+    // Toggle dropdown
+    labelBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const dropdown = document.getElementById('txn-month-dropdown');
+        if (dropdown && dropdown.classList.contains('hidden')) {
+            openTxnMonthDropdown();
+        } else {
+            closeTxnMonthDropdown();
+        }
+    });
+
+    // Show all
+    allBtn && allBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        txnMonthFilter = null;
+        closeTxnMonthDropdown();
+        renderTransactions();
+    });
+
+    // Year navigation inside dropdown
+    yearPrev && yearPrev.addEventListener('click', (e) => {
+        e.stopPropagation();
+        txnDropdownYear--;
+        renderTxnMonthDropdown();
+    });
+    yearNext && yearNext.addEventListener('click', (e) => {
+        e.stopPropagation();
+        txnDropdownYear++;
+        renderTxnMonthDropdown();
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+        const picker = document.querySelector('.txn-month-picker');
+        if (picker && !picker.contains(e.target)) {
+            closeTxnMonthDropdown();
+        }
     });
 }
 
@@ -1164,6 +1349,9 @@ if (transactionSearchClear) {
         }
     });
 }
+
+// Initialize month picker for 最近交易
+initTxnMonthPicker();
 
 // Range toggle buttons
 document.querySelectorAll('.view-btn').forEach(btn => btn.addEventListener('click', () => {

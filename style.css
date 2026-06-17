@@ -351,6 +351,181 @@ h1 { font-size: 1.8rem; font-weight: 700; color: var(--primary-dark); letter-spa
     display: inline-block;
 }
 
+/* ======= Month Picker ======= */
+.txn-month-picker {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(251, 113, 133, 0.08);
+    border: 1px solid rgba(251, 113, 133, 0.2);
+    border-radius: 14px;
+    padding: 3px 6px;
+}
+
+.txn-month-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--primary);
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    transition: background 0.2s, transform 0.15s;
+    flex-shrink: 0;
+}
+.txn-month-btn:hover {
+    background: rgba(251, 113, 133, 0.15);
+    transform: scale(1.1);
+}
+.txn-month-btn.small {
+    width: 24px;
+    height: 24px;
+    font-size: 0.7rem;
+}
+
+.txn-month-label {
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 10px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--primary-dark);
+    transition: background 0.2s;
+    white-space: nowrap;
+    min-width: 90px;
+    justify-content: center;
+}
+.txn-month-label:hover {
+    background: rgba(251, 113, 133, 0.12);
+}
+.txn-month-label i {
+    font-size: 0.8rem;
+    opacity: 0.7;
+}
+
+/* Dropdown popup */
+.txn-month-dropdown {
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: white;
+    border: 1px solid rgba(251, 113, 133, 0.25);
+    border-radius: 18px;
+    box-shadow: 0 12px 40px rgba(251, 113, 133, 0.18), 0 4px 16px rgba(0,0,0,0.10);
+    padding: 14px;
+    z-index: 200;
+    min-width: 240px;
+    animation: dropdownFadeIn 0.18s ease;
+}
+.txn-month-dropdown.hidden {
+    display: none;
+}
+
+@keyframes dropdownFadeIn {
+    from { opacity: 0; transform: translateX(-50%) translateY(-6px); }
+    to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+.txn-month-dropdown-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    padding: 0 2px;
+}
+
+.txn-dropdown-year {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--primary-dark);
+}
+
+.txn-month-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    margin-bottom: 10px;
+}
+
+.txn-month-cell {
+    padding: 7px 4px;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    background: rgba(251, 113, 133, 0.04);
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    text-align: center;
+    transition: background 0.18s, border-color 0.18s, color 0.18s, transform 0.12s;
+}
+.txn-month-cell:hover {
+    background: rgba(251, 113, 133, 0.12);
+    color: var(--primary-dark);
+    transform: scale(1.05);
+}
+.txn-month-cell.has-data {
+    color: var(--text-main);
+    font-weight: 600;
+    background: rgba(251, 113, 133, 0.07);
+    border-color: rgba(251, 113, 133, 0.18);
+}
+.txn-month-cell.active {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: white;
+    border-color: transparent;
+    box-shadow: 0 3px 10px rgba(251, 113, 133, 0.35);
+    font-weight: 700;
+}
+.txn-month-cell.active:hover {
+    transform: scale(1.07);
+}
+
+.txn-month-all-btn {
+    width: 100%;
+    padding: 8px;
+    border-radius: 10px;
+    border: 1px dashed rgba(251, 113, 133, 0.35);
+    background: none;
+    color: var(--primary);
+    font-size: 0.82rem;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background 0.18s, border-color 0.18s;
+}
+.txn-month-all-btn:hover {
+    background: rgba(251, 113, 133, 0.08);
+    border-color: var(--primary);
+}
+
+.txn-month-filter-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.82rem;
+    color: var(--primary-dark);
+    background: rgba(251, 113, 133, 0.1);
+    padding: 5px 10px;
+    border-radius: 8px;
+    margin-bottom: 0.8rem;
+    font-weight: 600;
+}
+.txn-month-filter-badge i {
+    opacity: 0.7;
+}
+
+
 .search-highlight {
     background: rgba(251, 191, 36, 0.4);
     color: var(--text-main);
