@@ -790,18 +790,19 @@ function renderCategoryManager() {
             <div class="category-header">
                 <div style="display: flex; align-items: center; gap: 8px;">
                     <i class="fas fa-grip-vertical category-handle" style="cursor: grab; color: var(--text-muted); opacity: 0.5;"></i>
-                    <strong>${cat.name}</strong>
+                    <strong id="cat-name-${idx}">${cat.name}</strong>
                 </div>
                 <div class="category-actions">
+                    <button class="icon-btn" onclick="editCategoryName('${activeTab}', ${idx})" title="修改名稱" style="color:var(--text-muted)"><i class="fas fa-pencil-alt"></i></button>
                     <button class="icon-btn" onclick="showAddSub(${idx})" title="增加子類別"><i class="fas fa-plus"></i></button>
                     <button class="icon-btn" onclick="removeCategory('${activeTab}', ${idx})" style="color:var(--primary)" title="刪除主類別"><i class="fas fa-trash"></i></button>
                 </div>
             </div>
             <div style="padding-left: 1.5rem; margin-top: 1rem; display:flex; flex-wrap:wrap; gap:0.5rem;">
                 ${cat.sub.map((s, sidx) => `
-                    <span class="badge" style="background:var(--secondary); padding:6px 12px; border-radius:12px; font-size:0.85rem; cursor:pointer; color:var(--text-muted); border: 1px solid rgba(251,113,133,0.1);" 
-                          onclick="removeSubcategory('${activeTab}', ${idx}, ${sidx})">
-                        ${s} <i class="fas fa-times" style="margin-left:5px; font-size:0.7rem; opacity:0.6;"></i>
+                    <span class="badge" id="sub-badge-${idx}-${sidx}" style="background:var(--secondary); padding:6px 12px; border-radius:12px; font-size:0.85rem; color:var(--text-muted); border: 1px solid rgba(251,113,133,0.1); display:inline-flex; align-items:center; gap:4px;">
+                        <span style="cursor:pointer;" onclick="editSubcategoryName('${activeTab}', ${idx}, ${sidx})" title="點擊修改名稱">${s}</span>
+                        <i class="fas fa-times" style="font-size:0.7rem; opacity:0.6; cursor:pointer;" onclick="removeSubcategory('${activeTab}', ${idx}, ${sidx})"></i>
                     </span>`).join('')}
             </div>
         </div>
@@ -833,6 +834,78 @@ function renderCategoryManager() {
 
 window.removeCategory = function(type, idx) { categories[type].splice(idx, 1); saveLedgerData(); renderCategoryManager(); updateCategorySelect(); };
 window.removeSubcategory = function(type, cIdx, sIdx) { categories[type][cIdx].sub.splice(sIdx, 1); saveLedgerData(); renderCategoryManager(); updateCategorySelect(); };
+
+// 修改主類別名稱（inline edit）
+window.editCategoryName = function(type, idx) {
+    const nameEl = document.getElementById(`cat-name-${idx}`);
+    if (!nameEl) return;
+    const currentName = categories[type][idx].name;
+    const wrapper = document.createElement('div');
+    wrapper.id = `cat-edit-${idx}`;
+    wrapper.style.cssText = 'display:flex; align-items:center; gap:6px;';
+    wrapper.innerHTML = `
+        <input type="text" id="cat-input-${idx}" value="${currentName.replace(/"/g, '&quot;')}"
+               style="border:1px solid var(--primary); border-radius:8px; padding:3px 10px; font-size:0.95rem; font-weight:600; outline:none; background:var(--card-bg); color:var(--text-primary); min-width:80px;">
+        <button class="icon-btn" onclick="saveCategoryName('${type}', ${idx})" style="color:var(--primary)" title="確認"><i class="fas fa-check"></i></button>
+        <button class="icon-btn" onclick="renderCategoryManager()" title="取消"><i class="fas fa-times"></i></button>
+    `;
+    nameEl.replaceWith(wrapper);
+    const input = document.getElementById(`cat-input-${idx}`);
+    if (input) {
+        input.focus();
+        input.select();
+        input.addEventListener('keydown', e => {
+            if (e.key === 'Enter') window.saveCategoryName(type, idx);
+            if (e.key === 'Escape') renderCategoryManager();
+        });
+    }
+};
+
+window.saveCategoryName = function(type, idx) {
+    const input = document.getElementById(`cat-input-${idx}`);
+    if (!input) return;
+    const newName = input.value.trim();
+    if (!newName) return;
+    categories[type][idx].name = newName;
+    saveLedgerData();
+    renderCategoryManager();
+    updateCategorySelect();
+};
+
+// 修改子類別名稱（inline edit）
+window.editSubcategoryName = function(type, cIdx, sIdx) {
+    const badgeEl = document.getElementById(`sub-badge-${cIdx}-${sIdx}`);
+    if (!badgeEl) return;
+    const currentName = categories[type][cIdx].sub[sIdx];
+    const inputWidth = Math.max(currentName.length * 14, 60);
+    badgeEl.innerHTML = `
+        <input type="text" id="sub-input-${cIdx}-${sIdx}" value="${currentName.replace(/"/g, '&quot;')}"
+               style="border:none; background:transparent; font-size:0.85rem; color:var(--text-primary); outline:none; width:${inputWidth}px; font-weight:500;">
+        <i class="fas fa-check" style="font-size:0.7rem; cursor:pointer; color:var(--primary);" onclick="saveSubcategoryName('${type}', ${cIdx}, ${sIdx})" title="確認"></i>
+        <i class="fas fa-times" style="font-size:0.7rem; cursor:pointer; opacity:0.5;" onclick="renderCategoryManager()" title="取消"></i>
+    `;
+    badgeEl.style.border = '1px solid rgba(251,113,133,0.4)';
+    const input = document.getElementById(`sub-input-${cIdx}-${sIdx}`);
+    if (input) {
+        input.focus();
+        input.select();
+        input.addEventListener('keydown', e => {
+            if (e.key === 'Enter') window.saveSubcategoryName(type, cIdx, sIdx);
+            if (e.key === 'Escape') renderCategoryManager();
+        });
+    }
+};
+
+window.saveSubcategoryName = function(type, cIdx, sIdx) {
+    const input = document.getElementById(`sub-input-${cIdx}-${sIdx}`);
+    if (!input) return;
+    const newName = input.value.trim();
+    if (!newName) return;
+    categories[type][cIdx].sub[sIdx] = newName;
+    saveLedgerData();
+    renderCategoryManager();
+    updateCategorySelect();
+};
 window.showAddSub = function(idx) {
     const activeTab = document.querySelector('.tab-btn.active').dataset.tab;
     targetCategoryLabel.innerText = categories[activeTab][idx].name;
