@@ -1282,6 +1282,17 @@ body.mobile-mode .item-amount { width: 100%; justify-content: space-between; fle
 }
 .btn-edit-small:hover { background: var(--primary); color: white; transform: scale(1.1); }
 
+/* Running balance label shown on each account detail transaction */
+.running-balance {
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    opacity: 0.75;
+    white-space: nowrap;
+}
+.running-balance.pos-bal { color: var(--income, #10b981); }
+.running-balance.neg-bal { color: var(--expense, #f43f5e); }
+
 /* ============================================================
    📌 BULLETIN BOARD NOTES WIDGET
    ============================================================ */

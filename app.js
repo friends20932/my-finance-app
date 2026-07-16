@@ -2265,7 +2265,12 @@ let _currentAccountDetailsName = '';
 function renderAccountDetailsList(accountName, monthFilter) {
     const list = accountDetailsList;
     list.innerHTML = '';
-    let accountTransactions = transactions.filter(t => t.account === accountName || t.toAccount === accountName);
+
+    // All transactions for this account (unfiltered) to compute running balance
+    const allAccountTxns = transactions.filter(t => t.account === accountName || t.toAccount === accountName);
+
+    // Filtered transactions for display
+    let accountTransactions = allAccountTxns.slice();
     if (monthFilter) {
         accountTransactions = accountTransactions.filter(t => t.date.startsWith(monthFilter));
     }
@@ -2273,7 +2278,40 @@ function renderAccountDetailsList(accountName, monthFilter) {
         list.innerHTML = '<div class="empty-state">尚無交易紀錄</div>';
         return;
     }
-    accountTransactions.sort((a, b) => new Date(b.date) - new Date(a.date) || b.id - a.id).forEach(t => {
+
+    // Sort displayed transactions newest first
+    const sorted = accountTransactions.slice().sort((a, b) => new Date(b.date) - new Date(a.date) || b.id - a.id);
+
+    // Pre-compute running balance after each displayed transaction.
+    // Strategy: use calculateAccountBalance up to (and including) each transaction's date.
+    // For same-date transactions, resolve by id order (ascending id = earlier).
+    // We compute the balance AFTER each transaction by simulating from initialBalance.
+    const acc = accounts.find(a => a.name === accountName);
+    const initialBalance = acc ? (acc.initialBalance || 0) : 0;
+
+    // Build a map: transactionId -> running balance after that transaction
+    // Sort ALL account transactions by date asc, then id asc
+    const allSorted = allAccountTxns.slice().sort((a, b) => new Date(a.date) - new Date(b.date) || a.id - b.id);
+    let runningBal = initialBalance;
+    const balanceAfter = {};
+    allSorted.forEach(t => {
+        if (t.type === 'transfer') {
+            if (t.account === accountName && t.toAccount === accountName) {
+                // no net change
+            } else if (t.toAccount === accountName) {
+                runningBal += t.amount;
+            } else {
+                runningBal -= t.amount;
+            }
+        } else if (t.type === 'income') {
+            runningBal += t.amount;
+        } else if (t.type === 'expense') {
+            runningBal -= t.amount;
+        }
+        balanceAfter[t.id] = runningBal;
+    });
+
+    sorted.forEach(t => {
         const item = document.createElement('div');
         item.className = `transaction-item account-detail-item ${t.excludeFromStats ? 'excluded' : ''}`;
 
@@ -2294,13 +2332,17 @@ function renderAccountDetailsList(accountName, monthFilter) {
             sign = '-';
         }
 
+        const afterBal = balanceAfter[t.id];
+        const afterBalClass = afterBal < 0 ? 'neg-bal' : 'pos-bal';
+
         item.innerHTML = `
             <div class="item-info">
                 <div class="item-icon"><i class="fas fa-receipt"></i></div>
                 <div class="item-details"><h4>${t.description || t.category}</h4><p>${t.type === 'transfer' ? '轉帳' : t.category}${t.subcategory ? ' • ' + t.subcategory : ''} • ${t.account}</p><span class="item-date">${t.date.replace('T', ' ')}</span></div>
             </div>
-            <div class="item-amount ${amountClass}" style="gap: 0.5rem;">
+            <div class="item-amount ${amountClass}" style="gap: 0.5rem; flex-direction: column; align-items: flex-end;">
                 <strong class="amount">${sign} $${formatNumber(displayAmount)}</strong>
+                <span class="running-balance ${afterBalClass}">餘額 $${formatNumber(afterBal)}</span>
                 <div class="detail-actions">
                     <button class="btn-edit-small" title="編輯" onclick="event.stopPropagation(); accountDetailsModal.classList.remove('active'); editTransaction(${t.id});"><i class="fas fa-edit"></i></button>
                     <button class="btn-edit-small" title="刪除" style="color:#e11d48;" onclick="event.stopPropagation(); removeTransactionFromDetails(${t.id}, '${accountName}');"><i class="fas fa-trash"></i></button>
